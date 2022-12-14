@@ -12,16 +12,11 @@ import imp
 #RootTools
 from RootTools.core.standard             import *
 
+import fastjet
+ak18 = fastjet.JetDefinition(fastjet.antikt_algorithm, 1.0, fastjet.E_scheme)
+
 # Helpers
 from EEEC.Tools.helpers import checkRootFile
-
-# Logging
-import EEEC.Tools.logger as _logger
-logFile = '/tmp/%s_%s_%s_njob%s.txt'%(options.skim, '_'.join(options.samples), os.environ['USER'], str(0 if options.nJobs==1 else options.job))
-logger  = _logger.get_logger(options.logLevel, logFile = logFile)
-
-import RootTools.core.logger as _logger_rt
-logger_rt = _logger_rt.get_logger(options.logLevel, logFile = logFile )
 
 # Arguments
 # 
@@ -33,6 +28,14 @@ argParser.add_argument('--input',              action='store',      help='input 
 argParser.add_argument('--overwrite',          action='store',      nargs='?', choices = ['none', 'all', 'target'], default = 'none', help='Overwrite?')#, default = True)
 argParser.add_argument('--output',             action='store',      default='output')
 args = argParser.parse_args()
+
+# Logging
+import EEEC.Tools.logger as _logger
+logger  = _logger.get_logger(args.logLevel, logFile = None)
+
+import RootTools.core.logger as _logger_rt
+logger_rt = _logger_rt.get_logger(args.logLevel, logFile = None )
+
 
 sample = FWLiteSample( "output", args.input)
 
@@ -117,6 +120,9 @@ maker = TreeMaker(
 
 tmp_dir.cd()
 
+def make_pseudoJet( obj ):
+    return fastjet.PseudoJet( obj.px(), obj.py(), obj.pz(), obj.energy() )
+
 gRandom = ROOT.TRandom3()
 def filler( event ):
 
@@ -148,22 +154,25 @@ counter = 0
 reader.start()
 maker.start()
 
-
 while reader.run( ):
 
     filler( maker.event )
     counter += 1
     if counter == maxEvents:  break
 
-logger( "Done with running over %i events.", reader.nEvents )
+    #showered   = [p for p in reader.products['gp'] if abs(p.status())>=51 and abs(p.status())<80]
+    particles = [p for p in reader.products['gp'] if p.numberOfDaughters()==0]
+
+    clustSeq      = fastjet.ClusterSequence( map( make_pseudoJet, particles ), ak18 )
+    sortedJets    = fastjet.sorted_by_pt(clustSeq.inclusive_jets())
+
+    for jet in sortedJets:
+        print "AK18 jet: pt %3.2f constituents %i"% (jet.pt(), len(jet.constituents()) )
+
+logger.info( "Done with running over %i events.", reader.nEvents )
 
 output_file.cd()
 maker.tree.Write()
 output_file.Close()
 
-logger( "Written output file %s", output_filename )
-
-##cleanup delphes file:
-if os.path.exists( output_filename ) and args.delphesEra is not None and args.removeDelphesFiles:
-    os.remove( delphes_file )
-    logger( "Removing Delphes file %s", delphes_file )
+logger.info( "Written output file %s", output_filename )

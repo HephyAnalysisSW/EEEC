@@ -12,3 +12,4 @@ export MW=$5
 
 # Run the cmsRun
 cmsRun -e $PWD/production.py || exit $? ;
+python genPostProcessing.py --input production_$POSTFIX.root 
