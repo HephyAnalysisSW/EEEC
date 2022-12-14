@@ -1,0 +1,17 @@
+__init__.py
+nohup.out
+*.pyc
+.*.swp
+.#*
+#*#
+*~
+*.tmp
+*.log
+testing
+py.py
+#ME5_debug
+#MG5_debug
+*.dat
+#tmp*
+missing*.sh
+*.nfs*
