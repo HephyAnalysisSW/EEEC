@@ -1,6 +1,47 @@
 from EEEC.Tools.helpers import deltaRGenparts
 from math import sqrt
 from ROOT import TLorentzVector
+import numpy as np
+import itertools
+
+def getTriplets(scale, constituents, n=2, max_zeta=None, max_delta_zeta=None, delta_legs=None, shortest_side=None):
+    triplets = []
+
+    # transform coordinates to np.array
+    constituents         = np.array( [[c.px(), c.py(), c.pz()]  for c in constituents])
+    # make triplet combinations
+    triplet_combinations = np.array(list(itertools.combinations( range(len(constituents)), 3)))
+    c = constituents[triplet_combinations]
+
+    zeta_values = np.zeros( ( len(c), 3), dtype='f' )
+
+    zeta_values[:,0] = (c[:,0,0]*c[:,1,0]+c[:,0,1]*c[:,1,1]+c[:,0,2]*c[:,1,2])/np.sqrt( ((c[:,0,:]**2).sum(axis=1))*((c[:,1,:]**2).sum(axis=1)) ) 
+    zeta_values[:,1] = (c[:,0,0]*c[:,2,0]+c[:,0,1]*c[:,2,1]+c[:,0,2]*c[:,2,2])/np.sqrt( ((c[:,0,:]**2).sum(axis=1))*((c[:,2,:]**2).sum(axis=1)) ) 
+    zeta_values[:,2] = (c[:,1,0]*c[:,2,0]+c[:,1,1]*c[:,2,1]+c[:,1,2]*c[:,2,2])/np.sqrt( ((c[:,1,:]**2).sum(axis=1))*((c[:,2,:]**2).sum(axis=1)) ) 
+    zeta_values = (1-zeta_values)/2.
+
+    zeta_values = np.sort( zeta_values, axis=1)
+
+    # Check if smallest dR is small enough
+    mask = np.ones( len(zeta_values), dtype=bool)
+    if max_zeta is not None:
+        mask &= (zeta_values[:,0]<=max_zeta)
+
+    # Check if the dRs form an equilateral triangle (for top)
+    if max_delta_zeta is not None:
+        mask &= (zeta_values[:,2]-zeta_values[:,0]<=max_delta_zeta)
+
+    # Check if the dRs form a 2-point correlator (for W)
+    if delta_legs is not None and shortest_side is not None:
+        mask &= (~( (zeta_values[:,2]-zeta_values[:,1] > delta_legs) & (zeta_values[:,0] > shortest_side)))
+
+    zeta_values = zeta_values[mask]
+    c           = c[mask]
+    del mask
+
+    weight = ( np.sqrt( (c[:,0,0]**2+c[:,0,1]**2)*(c[:,1,0]**2+c[:,1,1]**2)*(c[:,2,0]**2+c[:,2,1]**2)) / scale**3 )**n
+
+    return zeta_values, weight
 
 def getZeta(p1, p2, pp = False):
     if pp:
@@ -12,17 +53,16 @@ def getZeta(p1, p2, pp = False):
         costheta = product / (mag1*mag2)
         return (1-costheta)/2
 
-def getTriplets(scale, constituents, n=2, max_zeta=None, max_delta_zeta=None, delta_legs=None, shortest_side=None):
+def _getTriplets(scale, constituents, n=2, max_zeta=None, max_delta_zeta=None, delta_legs=None, shortest_side=None):
     triplets = []
     for i in range(len(constituents)):
         for j in range(i+1, len(constituents)):
             for k in range(j+1, len(constituents)):
 
-#    for i, j, k in itertools.combinations( constituents, 3):
                 zeta_values = [
-                    getZeta(constituents[i], constituents[j], pp = True),
-                    getZeta(constituents[i], constituents[k], pp = True),
-                    getZeta(constituents[j], constituents[k], pp = True),
+                    getZeta(constituents[i], constituents[j], pp = False),
+                    getZeta(constituents[i], constituents[k], pp = False),
+                    getZeta(constituents[j], constituents[k], pp = False),
                     ]
                 zeta_values.sort()
 

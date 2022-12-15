@@ -9,6 +9,7 @@ import os, sys
 ROOT.gROOT.SetBatch(True)
 import imp
 import time
+import numpy as np
 
 #RootTools
 from RootTools.core.standard             import *
@@ -21,7 +22,7 @@ import fastjet
 from EEEC.Tools.helpers import checkRootFile, deltaRGenparts
 
 # Energy Correlators
-from EEEC.Tools.energyCorrelators import getTriplets
+import EEEC.Tools.energyCorrelators as ec
 
 # Arguments
 # 
@@ -118,11 +119,11 @@ Nbins = 20
 min_zeta = 0
 max_zeta = 2*args.jetR+0.2
 
-h_correlator1 = ROOT.TH3F("EEEC1", "EEEC1", Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta)
-h_correlator2 = ROOT.TH3F("EEEC2", "EEEC2", Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta)
-h_mindR_top_jet = ROOT.TH1F("mindR_top_jet", "min[#Delta R(top, jet)]", 10, 0, 5)
+#h_correlator1 = ROOT.TH3D("EEEC1", "EEEC1", Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta)
+#h_correlator2 = ROOT.TH3D("EEEC2", "EEEC2", Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta)
+h_mindR_top_jet = ROOT.TH1D("mindR_top_jet", "min[#Delta R(top, jet)]", 10, 0, 5)
 h_mjet = ROOT.TH1F("m_jet", "m_{jet}", 30, 0, 300)
-h_Nconstituents = ROOT.TH1F("Nconstituents", "Nconstituents", 20, 0, 100)
+h_Nconstituents = ROOT.TH1D("Nconstituents", "Nconstituents", 20, 0, 100)
 
 timediffs = []
 
@@ -131,23 +132,6 @@ while reader.run( ):
     t_start = time.time()
 
     if reader.position % 100==0: logger.info("At event %i/%i", reader.position, reader.nEvents)
-    # All gen particles
-    #gp        = reader.products['gp']
-    # for searching
-    #search  = GenSearch( gp )
-
-    # LHE Zs (Suman's example: https://github.com/Sumantifr/XtoYH/blob/master/Analysis/NTuplizer/plugins/NTuplizer_XYH.cc#L1973-L1992 )
-    #hepup = reader.products['lhe'].hepeup()
-    #lhe_particles = hepup.PUP
-    #for i_p, p in enumerate(lhe_particles):
-    #    if abs(hepup.IDUP[i_p])!=24: continue
-    #    p4 = ROOT.TLorentzVector(lhe_particles[i_p][0], lhe_particles[i_p][1], lhe_particles[i_p][2], lhe_particles[i_p][3])
-    #    print "Found!"
-    #    #event.LHE_genZ_pt  = p4.Pt()
-    #    #event.LHE_genZ_eta = p4.Eta()
-    #    #event.LHE_genZ_phi  = p4.Phi()
-    #    #event.LHE_genZ_mass = p4.M()
-    #    break
 
     counter +=1
     if counter == maxEvents:  break
@@ -202,42 +186,65 @@ while reader.run( ):
     minpT = 300 # Set some minimal jet pT to ensure boosted tops that are within a single jet
 
     # top quark
-    triplets_top = []
+    triplets_top = np.empty((0,3))
+    weights_top  = np.empty((0))
     scale = (initial1.p4()+initial2.p4()).M()
     if jet_top is not None:
         if jet_top.pt() > minpT:
             # Get triplets
-            triplets_top = getTriplets(scale, jet_top.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
+            triplets_top, weights_top = ec.getTriplets(scale, jet_top.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
+            #triplets_top = ec._getTriplets(scale, jet_top.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
             # Fill jet hists
             h_mindR_top_jet.Fill(dRmin_top)
             h_mjet.Fill(jet_top.m())
             h_Nconstituents.Fill(len(jet_top.constituents()))
 
+
+            #for (dR1, dR2, dR3, weight) in np.append( triplets_top, weights_top.reshape(-1,1), axis=1):
+            #    h_correlator1.Fill(dR1, dR2, dR3, weight)     # N=1
+            #    h_correlator2.Fill(dR1, dR2, dR3, weight**2)     # N=1
+
     # anti top quark
-    triplets_antitop = []
+    triplets_antitop = np.empty((0,3)) 
+    weights_antitop  = np.empty((0))
     if jet_antitop is not None:
         if jet_antitop.pt() > minpT:
             # Get triplets
-            triplets_antitop = getTriplets(scale, jet_antitop.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
+            triplets_antitop, weights_antitop = ec.getTriplets(scale, jet_antitop.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
             # Fill jet hists
             h_mindR_top_jet.Fill(dRmin_antitop)
             h_mjet.Fill(jet_antitop.m())
             h_Nconstituents.Fill(len(jet_antitop.constituents()))            
+            #for (dR1, dR2, dR3, weight) in np.append( triplets_antitop, weights_antitop.reshape(-1,1), axis=1):
+            #    h_correlator1.Fill(dR1, dR2, dR3, weight)     # N=1
+            #    h_correlator2.Fill(dR1, dR2, dR3, weight**2)     # N=1
 
-    # Fill correlator histogram    
-    for (dR1, dR2, dR3, weight) in triplets_top+triplets_antitop:
-        h_correlator1.Fill(dR1, dR2, dR3, weight)     # N=1
-        h_correlator2.Fill(dR1, dR2, dR3, weight**2)  # N=2
-        
+#    # Fill correlator histogram    
+#    #for (dR1, dR2, dR3, weight) in triplets_top+triplets_antitop:
+#    for (dR1, dR2, dR3, weight) in np.append( triplets_top, weights_top.reshape(-1,1)) + np.append( triplets_antitop, weights_antitop.reshape(-1,1)):
+#        h_correlator1.Fill(dR1, dR2, dR3, weight)     # N=1
+#        h_correlator2.Fill(dR1, dR2, dR3, weight**2)  # N=2
+
+    binning = list( np.linspace(min_zeta,max_zeta,Nbins+1) for i in range(3) )
+    if len(triplets_top)+len(triplets_antitop)>0:
+        h_correlator1 = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))
+        h_correlator2 = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)
     
     timediffs.append(time.time() - t_start)
 
 logger.info( "Done with running over %i events.", reader.nEvents )
 logger.info( "  Took %3.2f seconds per event (average)", sum(timediffs)/len(timediffs) )
 
+from EEEC.Tools.helpers import make_TH3D
+th3d_h_correlator1 = make_TH3D(h_correlator1)
+th3d_h_correlator1.SetName("EEEC1")
+th3d_h_correlator1.SetTitle("EEEC1")
+th3d_h_correlator2 = make_TH3D(h_correlator2)
+th3d_h_correlator2.SetName("EEEC1")
+th3d_h_correlator2.SetTitle("EEEC1")
 output_file.cd()
-h_correlator1.Write()
-h_correlator2.Write()
+th3d_h_correlator1.Write()
+th3d_h_correlator2.Write()
 h_mindR_top_jet.Write()
 h_mjet.Write()
 h_Nconstituents.Write()

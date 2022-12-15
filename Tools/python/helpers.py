@@ -24,6 +24,30 @@ def map_level(f, item, level):
     else:
         return [map_level(f, i, level - 1) for i in item]
 
+def make_TH1D( h, ignore_binning = False):
+    # remove infs from thresholds
+    vals, thrs = h
+    if ignore_binning:
+        histo = ROOT.TH1D("h","h",len(vals),0,len(vals))
+    else:
+        histo = ROOT.TH1D("h","h",len(thrs)-1,array('d', thrs))
+    for i_v, v in enumerate(vals):
+        histo.SetBinContent(i_v+1, v)
+    return histo
+
+def make_TH3D(h):
+    # remove infs from thresholds
+    vals, ( thrs1, thrs2, thrs3) = h
+
+    histo = ROOT.TH3D("h","h",len(thrs1)-1,array('d', thrs1), len(thrs2)-1,array('d', thrs2), len(thrs3)-1,array('d', thrs3))
+
+    for i_bx in range(1, histo.GetNbinsX()+1):
+        for i_by in range(1, histo.GetNbinsY()+1):
+            for i_bz in range(1, histo.GetNbinsZ()+1):
+    
+                histo.SetBinContent(i_bx, i_by, i_bz, vals[i_bx-1][i_by-1][i_bz-1])
+    return histo
+
 def deltaPhi(phi1, phi2):
     dphi = phi2-phi1
     if  dphi > pi:
