@@ -8,15 +8,20 @@ import ROOT
 import os, sys
 ROOT.gROOT.SetBatch(True)
 import imp
+import time
 
 #RootTools
 from RootTools.core.standard             import *
 
+# Fastjet
 import fastjet
-ak18 = fastjet.JetDefinition(fastjet.antikt_algorithm, 1.0, fastjet.E_scheme)
+
 
 # Helpers
-from EEEC.Tools.helpers import checkRootFile
+from EEEC.Tools.helpers import checkRootFile, deltaRGenparts
+
+# Energy Correlators
+from EEEC.Tools.energyCorrelators import getTriplets
 
 # Arguments
 # 
@@ -27,6 +32,8 @@ argParser.add_argument('--small',              action='store_true', help='Run on
 argParser.add_argument('--input',              action='store',      help='input file')
 argParser.add_argument('--overwrite',          action='store',      nargs='?', choices = ['none', 'all', 'target'], default = 'none', help='Overwrite?')#, default = True)
 argParser.add_argument('--output',             action='store',      default='output')
+argParser.add_argument('--jetR',               action='store',      default=1.5)
+
 args = argParser.parse_args()
 
 # Logging
@@ -36,6 +43,7 @@ logger  = _logger.get_logger(args.logLevel, logFile = None)
 import RootTools.core.logger as _logger_rt
 logger_rt = _logger_rt.get_logger(args.logLevel, logFile = None )
 
+akjet = fastjet.JetDefinition(fastjet.antikt_algorithm, args.jetR, fastjet.E_scheme)
 
 sample = FWLiteSample( "output", args.input)
 
@@ -154,24 +162,112 @@ counter = 0
 reader.start()
 maker.start()
 
+Nbins = 20
+min_zeta = 0
+max_zeta = 2*args.jetR+0.2
+
+h_correlator1 = ROOT.TH3F("EEEC1", "EEEC1", Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta)
+h_correlator2 = ROOT.TH3F("EEEC2", "EEEC2", Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta)
+h_mindR_top_jet = ROOT.TH1F("mindR_top_jet", "min[#Delta R(top, jet)]", 10, 0, 5)
+h_mjet = ROOT.TH1F("m_jet", "m_{jet}", 30, 0, 300)
+h_Nconstituents = ROOT.TH1F("Nconstituents", "Nconstituents", 20, 0, 100)
+
+timediffs = []
+
 while reader.run( ):
+
+    t_start = time.time()
 
     filler( maker.event )
     counter += 1
     if counter == maxEvents:  break
 
+    # Find incoming particles and top quarks
+    top = None
+    atop = None
+    initial1 = None
+    initial2 = None
+    scattering_particles = [p for p in reader.products['gp'] if p.status() in [21,22] ] 
+    for i, p in enumerate(scattering_particles):
+        if p.pdgId() == 6:
+            top = p 
+        elif p.pdgId() == -6:
+            atop = p
+        elif p.pdgId() == 11:
+            initial1 = p
+        elif p.pdgId() == -11:
+            initial2 = p
+        # print i, "pdgId = %i, status = %i" %(p.pdgId(), p.status())
+
+    if top is None or atop is None:
+        print "Did not find 2 top quarks, skip this event..."
+        continue
+
+    if initial1 is None or initial2 is None:
+        print "Did not find 2 incoming partons, skip this event..."
+        continue
+    
+    # Get parton level/particle level/hadron level particles 
+    
     #showered   = [p for p in reader.products['gp'] if abs(p.status())>=51 and abs(p.status())<80]
     particles = [p for p in reader.products['gp'] if p.numberOfDaughters()==0]
 
-    clustSeq      = fastjet.ClusterSequence( map( make_pseudoJet, particles ), ak18 )
+    clustSeq      = fastjet.ClusterSequence( map( make_pseudoJet, particles ), akjet )
     sortedJets    = fastjet.sorted_by_pt(clustSeq.inclusive_jets())
 
+    # Find the jets that overlap with the tops
+    jet_top = None
+    jet_atop = None
+    dRmin_top = args.jetR
+    dRmin_atop = args.jetR
+    
     for jet in sortedJets:
-        print "AK18 jet: pt %3.2f constituents %i"% (jet.pt(), len(jet.constituents()) )
+        if deltaRGenparts(jet, top) < dRmin_top:
+            dRmin_top = deltaRGenparts(jet, top)
+            jet_top = jet
+        if deltaRGenparts(jet, atop) < dRmin_atop:
+            dRmin_atop = deltaRGenparts(jet, atop)
+            jet_atop = jet
+    
+    
+    triplets_top = []
+    triplets_atop = []
+    minpT = 300 # Set some minimal jet pT to ensure boosted tops that are within a single jet
+    scale = (initial1.p4()+initial2.p4()).M()
+    if jet_top is not None:
+        if jet_top.pt() > minpT:
+            # Get triplets
+            triplets_top = getTriplets(scale, jet_top.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
+            # Fill jet hists
+            h_mindR_top_jet.Fill(dRmin_top)
+            h_mjet.Fill(jet_top.m())
+            h_Nconstituents.Fill(len(jet_top.constituents()))
+    if jet_atop is not None:
+        if jet_atop.pt() > minpT:
+            # Get triplets
+            triplets_atop = getTriplets(scale, jet_atop.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
+            # Fill jet hists
+            h_mindR_top_jet.Fill(dRmin_atop)
+            h_mjet.Fill(jet_atop.m())
+            h_Nconstituents.Fill(len(jet_atop.constituents()))            
+
+    # Fill correlator histogram    
+    for (dR1, dR2, dR3, weight) in triplets_top+triplets_atop:
+        h_correlator1.Fill(dR1, dR2, dR3, weight)     # N=1
+        h_correlator2.Fill(dR1, dR2, dR3, weight**2)  # N=2
+        
+    
+    timediffs.append(time.time() - t_start)
 
 logger.info( "Done with running over %i events.", reader.nEvents )
+logger.info( "  Took %3.2f seconds per event (average)", sum(timediffs)/len(timediffs) )
 
 output_file.cd()
+h_correlator1.Write()
+h_correlator2.Write()
+h_mindR_top_jet.Write()
+h_mjet.Write()
+h_Nconstituents.Write()
 maker.tree.Write()
 output_file.Close()
 

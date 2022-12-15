@@ -37,6 +37,11 @@ def deltaR2(l1, l2):
 
 def deltaR(l1, l2):
     return sqrt(deltaR2(l1,l2))
+    
+def deltaRGenparts(g1, g2):
+    dphi = deltaPhi(g1.phi(), g2.phi())
+    deta = g1.eta() - g2.eta()
+    return sqrt( deta**2 + dphi**2 )
 
 def bestDRMatchInCollection(l, coll, deltaR = 0.2, deltaRelPt = 0.5 ):
     lst = []
