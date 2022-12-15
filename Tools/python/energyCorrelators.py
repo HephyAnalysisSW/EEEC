@@ -17,6 +17,8 @@ def getTriplets(scale, constituents, n=2, max_zeta=None, max_delta_zeta=None, de
     for i in range(len(constituents)):
         for j in range(i+1, len(constituents)):
             for k in range(j+1, len(constituents)):
+
+#    for i, j, k in itertools.combinations( constituents, 3):
                 zeta_values = [
                     getZeta(constituents[i], constituents[j], pp = True),
                     getZeta(constituents[i], constituents[k], pp = True),
