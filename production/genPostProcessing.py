@@ -20,6 +20,7 @@ import fastjet
 
 # Helpers
 from EEEC.Tools.helpers import checkRootFile, deltaRGenparts
+from EEEC.Tools.helpers import make_TH3D
 
 # Energy Correlators
 import EEEC.Tools.energyCorrelators as ec
@@ -118,15 +119,17 @@ reader.start()
 Nbins = 20
 min_zeta = 0
 max_zeta = 2*args.jetR+0.2
+binning = np.array([ np.linspace(min_zeta,max_zeta,Nbins+1) for i in range(3)], dtype='f')
 
-#h_correlator1 = ROOT.TH3D("EEEC1", "EEEC1", Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta)
-#h_correlator2 = ROOT.TH3D("EEEC2", "EEEC2", Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta)
+#h_correlator1_ = ROOT.TH3D("EEEC1", "EEEC1", Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta)
+#h_correlator2_ = ROOT.TH3D("EEEC2", "EEEC2", Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta)
 h_mindR_top_jet = ROOT.TH1D("mindR_top_jet", "min[#Delta R(top, jet)]", 10, 0, 5)
 h_mjet = ROOT.TH1F("m_jet", "m_{jet}", 30, 0, 300)
 h_Nconstituents = ROOT.TH1D("Nconstituents", "Nconstituents", 20, 0, 100)
 
 timediffs = []
 
+first = True
 while reader.run( ):
 
     t_start = time.time()
@@ -199,10 +202,12 @@ while reader.run( ):
             h_mjet.Fill(jet_top.m())
             h_Nconstituents.Fill(len(jet_top.constituents()))
 
+            #triplets_top_, weights_top_ = ec._getTriplets(scale, jet_top.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
+            #assert False, ""
 
             #for (dR1, dR2, dR3, weight) in np.append( triplets_top, weights_top.reshape(-1,1), axis=1):
-            #    h_correlator1.Fill(dR1, dR2, dR3, weight)     # N=1
-            #    h_correlator2.Fill(dR1, dR2, dR3, weight**2)     # N=1
+            #    h_correlator1_.Fill(dR1, dR2, dR3, weight)     # N=1
+            #    h_correlator2_.Fill(dR1, dR2, dR3, weight**2)     # N=1
 
     # anti top quark
     triplets_antitop = np.empty((0,3)) 
@@ -215,9 +220,10 @@ while reader.run( ):
             h_mindR_top_jet.Fill(dRmin_antitop)
             h_mjet.Fill(jet_antitop.m())
             h_Nconstituents.Fill(len(jet_antitop.constituents()))            
+
             #for (dR1, dR2, dR3, weight) in np.append( triplets_antitop, weights_antitop.reshape(-1,1), axis=1):
-            #    h_correlator1.Fill(dR1, dR2, dR3, weight)     # N=1
-            #    h_correlator2.Fill(dR1, dR2, dR3, weight**2)     # N=1
+            #    h_correlator1_.Fill(dR1, dR2, dR3, weight)     # N=1
+            #    h_correlator2_.Fill(dR1, dR2, dR3, weight**2)     # N=1
 
 #    # Fill correlator histogram    
 #    #for (dR1, dR2, dR3, weight) in triplets_top+triplets_antitop:
@@ -225,23 +231,28 @@ while reader.run( ):
 #        h_correlator1.Fill(dR1, dR2, dR3, weight)     # N=1
 #        h_correlator2.Fill(dR1, dR2, dR3, weight**2)  # N=2
 
-    binning = list( np.linspace(min_zeta,max_zeta,Nbins+1) for i in range(3) )
     if len(triplets_top)+len(triplets_antitop)>0:
-        h_correlator1 = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))
-        h_correlator2 = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)
-    
+        if first:
+            h_correlator1 = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))
+            h_correlator2 = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)
+            th3d_h_correlator1 = make_TH3D(h_correlator1)
+            th3d_h_correlator1.SetName("EEEC1")
+            th3d_h_correlator1.SetTitle("EEEC1")
+            th3d_h_correlator2 = make_TH3D(h_correlator2)
+            th3d_h_correlator2.SetName("EEEC2")
+            th3d_h_correlator2.SetTitle("EEEC2")
+            first = False
+        else:
+            h_correlator1 = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))
+            h_correlator2 = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)
+            th3d_h_correlator1.Add(make_TH3D(h_correlator1))
+            th3d_h_correlator2.Add(make_TH3D(h_correlator2))
+ 
     timediffs.append(time.time() - t_start)
 
 logger.info( "Done with running over %i events.", reader.nEvents )
 logger.info( "  Took %3.2f seconds per event (average)", sum(timediffs)/len(timediffs) )
 
-from EEEC.Tools.helpers import make_TH3D
-th3d_h_correlator1 = make_TH3D(h_correlator1)
-th3d_h_correlator1.SetName("EEEC1")
-th3d_h_correlator1.SetTitle("EEEC1")
-th3d_h_correlator2 = make_TH3D(h_correlator2)
-th3d_h_correlator2.SetName("EEEC2")
-th3d_h_correlator2.SetTitle("EEEC2")
 output_file.cd()
 th3d_h_correlator1.Write()
 th3d_h_correlator2.Write()
