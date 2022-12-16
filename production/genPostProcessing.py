@@ -215,25 +215,32 @@ while reader.run( ):
 
     if len(triplets_top)+len(triplets_antitop)>0:
         if first:
-            h_correlator1 = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))
-            h_correlator2 = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)
-            th3d_h_correlator1 = make_TH3D(h_correlator1)
-            th3d_h_correlator1.SetName("EEEC1")
-            th3d_h_correlator1.SetTitle("EEEC1")
-            th3d_h_correlator2 = make_TH3D(h_correlator2)
-            th3d_h_correlator2.SetName("EEEC2")
-            th3d_h_correlator2.SetTitle("EEEC2")
+            h_correlator1, (xedges, yedges, zedges) = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))
+            h_correlator2, (xedges, yedges, zedges) = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)
+            # th3d_h_correlator1 = make_TH3D(h_correlator1)
+            # th3d_h_correlator1.SetName("EEEC1")
+            # th3d_h_correlator1.SetTitle("EEEC1")
+            # th3d_h_correlator2 = make_TH3D(h_correlator2)
+            # th3d_h_correlator2.SetName("EEEC2")
+            # th3d_h_correlator2.SetTitle("EEEC2")
             first = False
         else:
-            h_correlator1 = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))
-            h_correlator2 = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)
-            th3d_h_correlator1.Add(make_TH3D(h_correlator1))
-            th3d_h_correlator2.Add(make_TH3D(h_correlator2))
+            h_correlator1 += np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))[0]
+            h_correlator2 += np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)[0]
+            # th3d_h_correlator1.Add(make_TH3D(h_correlator1))
+            # th3d_h_correlator2.Add(make_TH3D(h_correlator2))
  
     timediffs.append(time.time() - t_start)
 
 logger.info( "Done with running over %i events.", reader.nEvents )
 logger.info( "  Took %3.2f seconds per event (average)", sum(timediffs)/len(timediffs) )
+
+th3d_h_correlator1 = make_TH3D((h_correlator1, (xedges, yedges, zedges)))
+th3d_h_correlator1.SetName("EEEC1")
+th3d_h_correlator1.SetTitle("EEEC1")
+th3d_h_correlator2 = make_TH3D((h_correlator2, (xedges, yedges, zedges)))
+th3d_h_correlator2.SetName("EEEC2")
+th3d_h_correlator2.SetTitle("EEEC2")
 
 output_file.cd()
 th3d_h_correlator1.Write()
