@@ -116,16 +116,14 @@ gRandom = ROOT.TRandom3()
 counter = 0
 reader.start()
 
-Nbins = 20
+Nbins = 50
 min_zeta = 0
 max_zeta = 2*args.jetR+0.2
 binning = np.array([ np.linspace(min_zeta,max_zeta,Nbins+1) for i in range(3)], dtype='f')
 
-#h_correlator1_ = ROOT.TH3D("EEEC1", "EEEC1", Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta)
-#h_correlator2_ = ROOT.TH3D("EEEC2", "EEEC2", Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta, Nbins, min_zeta, max_zeta)
-h_mindR_top_jet = ROOT.TH1D("mindR_top_jet", "min[#Delta R(top, jet)]", 10, 0, 5)
+h_mindR_top_jet = ROOT.TH1D("mindR_top_jet", "min[#Delta R(top, jet)]", 10, 0, 3)
 h_mjet = ROOT.TH1F("m_jet", "m_{jet}", 30, 0, 300)
-h_Nconstituents = ROOT.TH1D("Nconstituents", "Nconstituents", 20, 0, 100)
+h_Nconstituents = ROOT.TH1D("Nconstituents", "Nconstituents", 20, 0, 200)
 
 timediffs = []
 
@@ -187,7 +185,7 @@ while reader.run( ):
             jet_antitop   = jet
     
     minpT = 300 # Set some minimal jet pT to ensure boosted tops that are within a single jet
-
+    
     # top quark
     triplets_top = np.empty((0,3))
     weights_top  = np.empty((0))
@@ -196,18 +194,11 @@ while reader.run( ):
         if jet_top.pt() > minpT:
             # Get triplets
             triplets_top, weights_top = ec.getTriplets(scale, jet_top.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
-            #triplets_top = ec._getTriplets(scale, jet_top.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
             # Fill jet hists
             h_mindR_top_jet.Fill(dRmin_top)
             h_mjet.Fill(jet_top.m())
             h_Nconstituents.Fill(len(jet_top.constituents()))
 
-            #triplets_top_, weights_top_ = ec._getTriplets(scale, jet_top.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
-            #assert False, ""
-
-            #for (dR1, dR2, dR3, weight) in np.append( triplets_top, weights_top.reshape(-1,1), axis=1):
-            #    h_correlator1_.Fill(dR1, dR2, dR3, weight)     # N=1
-            #    h_correlator2_.Fill(dR1, dR2, dR3, weight**2)     # N=1
 
     # anti top quark
     triplets_antitop = np.empty((0,3)) 
@@ -221,15 +212,6 @@ while reader.run( ):
             h_mjet.Fill(jet_antitop.m())
             h_Nconstituents.Fill(len(jet_antitop.constituents()))            
 
-            #for (dR1, dR2, dR3, weight) in np.append( triplets_antitop, weights_antitop.reshape(-1,1), axis=1):
-            #    h_correlator1_.Fill(dR1, dR2, dR3, weight)     # N=1
-            #    h_correlator2_.Fill(dR1, dR2, dR3, weight**2)     # N=1
-
-#    # Fill correlator histogram    
-#    #for (dR1, dR2, dR3, weight) in triplets_top+triplets_antitop:
-#    for (dR1, dR2, dR3, weight) in np.append( triplets_top, weights_top.reshape(-1,1)) + np.append( triplets_antitop, weights_antitop.reshape(-1,1)):
-#        h_correlator1.Fill(dR1, dR2, dR3, weight)     # N=1
-#        h_correlator2.Fill(dR1, dR2, dR3, weight**2)  # N=2
 
     if len(triplets_top)+len(triplets_antitop)>0:
         if first:
