@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-''' Make flat ntuple from GEN data tier 
+''' EEEC histograms 
 '''
 #
 # Standard imports and batch mode
@@ -16,7 +16,6 @@ from RootTools.core.standard             import *
 
 # Fastjet
 import fastjet
-
 
 # Helpers
 from EEEC.Tools.helpers import checkRootFile, deltaRGenparts
@@ -41,13 +40,11 @@ args = argParser.parse_args()
 # Logging
 import EEEC.Tools.logger as _logger
 logger  = _logger.get_logger(args.logLevel, logFile = None)
-
 import RootTools.core.logger as _logger_rt
 logger_rt = _logger_rt.get_logger(args.logLevel, logFile = None )
 
-akjet = fastjet.JetDefinition(fastjet.antikt_algorithm, args.jetR, fastjet.E_scheme)
-
-sample = FWLiteSample( "output", args.input)
+akjet   = fastjet.JetDefinition(fastjet.antikt_algorithm, args.jetR, fastjet.E_scheme)
+sample  = FWLiteSample( "output", args.input)
 
 maxEvents = -1
 if args.small: 
@@ -64,49 +61,14 @@ if not os.path.exists( output_directory ):
         pass
     logger.info( "Created output directory %s", output_directory )
 
+# event content
 products = {
-#    'lhe':{'type':'LHEEventProduct', 'label':("externalLHEProducer")},
-#    'gen':{'type':'GenEventInfoProduct', 'label':'generator'},
     'gp':{'type':'vector<reco::GenParticle>', 'label':("genParticles")},
-#    'genJets':{'type':'vector<reco::GenJet>', 'label':("ak4GenJets")},
-#    'genMET':{'type':'vector<reco::GenMET>',  'label':("genMetTrue")},
 }
-
-def fill_vector_collection( event, collection_name, collection_varnames, objects):
-    setattr( event, "n"+collection_name, len(objects) )
-    for i_obj, obj in enumerate(objects):
-        for var in collection_varnames:
-            getattr(event, collection_name+"_"+var)[i_obj] = obj[var]
-def fill_vector( event, collection_name, collection_varnames, obj):
-    for var in collection_varnames:
-        try:
-            setattr(event, collection_name+"_"+var, obj[var] )
-        except TypeError as e:
-            logger.error( "collection_name %s var %s obj[var] %r", collection_name, var,  obj[var] )
-            raise e
-        except KeyError as e:
-            logger.error( "collection_name %s var %s obj[var] %r", collection_name, var,  obj[var] )
-            raise e
 
 # FWLite reader if this is an EDM file
 reader = sample.fwliteReader( products = products )
 
-#def addTLorentzVector( p_dict ):
-#    ''' add a TLorentz 4D Vector for further calculations
-#    '''
-#    p_dict['vecP4'] = ROOT.TLorentzVector( p_dict['pt']*cos(p_dict['phi']), p_dict['pt']*sin(p_dict['phi']),  p_dict['pt']*sinh(p_dict['eta']), p_dict['pt']*cosh(p_dict['eta']) )
-
-tmp_dir     = ROOT.gDirectory
-output_filename =  os.path.join(output_directory, sample.name + '.root')
-
-if os.path.exists( output_filename ) and checkRootFile( output_filename, checkForObjects=["Events"]) and args.overwrite =='none' :
-    logger.info( "File %s found. Quit.", output_filename )
-    sys.exit(0)
-
-output_file = ROOT.TFile( output_filename, 'recreate')
-output_file.cd()
-
-tmp_dir.cd()
 
 def make_pseudoJet( obj ):
     return fastjet.PseudoJet( obj.px(), obj.py(), obj.pz(), obj.energy() )
@@ -199,7 +161,6 @@ while reader.run( ):
             h_mjet.Fill(jet_top.m())
             h_Nconstituents.Fill(len(jet_top.constituents()))
 
-
     # anti top quark
     triplets_antitop = np.empty((0,3)) 
     weights_antitop  = np.empty((0))
@@ -212,23 +173,14 @@ while reader.run( ):
             h_mjet.Fill(jet_antitop.m())
             h_Nconstituents.Fill(len(jet_antitop.constituents()))            
 
-
     if len(triplets_top)+len(triplets_antitop)>0:
         if first:
             h_correlator1, (xedges, yedges, zedges) = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))
             h_correlator2, (xedges, yedges, zedges) = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)
-            # th3d_h_correlator1 = make_TH3D(h_correlator1)
-            # th3d_h_correlator1.SetName("EEEC1")
-            # th3d_h_correlator1.SetTitle("EEEC1")
-            # th3d_h_correlator2 = make_TH3D(h_correlator2)
-            # th3d_h_correlator2.SetName("EEEC2")
-            # th3d_h_correlator2.SetTitle("EEEC2")
             first = False
         else:
-            h_correlator1 += np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))[0]
+            h_correlator1 += np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))   [0]
             h_correlator2 += np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)[0]
-            # th3d_h_correlator1.Add(make_TH3D(h_correlator1))
-            # th3d_h_correlator2.Add(make_TH3D(h_correlator2))
  
     timediffs.append(time.time() - t_start)
 
@@ -241,6 +193,14 @@ th3d_h_correlator1.SetTitle("EEEC1")
 th3d_h_correlator2 = make_TH3D((h_correlator2, (xedges, yedges, zedges)))
 th3d_h_correlator2.SetName("EEEC2")
 th3d_h_correlator2.SetTitle("EEEC2")
+
+output_filename =  os.path.join(output_directory, sample.name + '.root')
+if os.path.exists( output_filename ) and checkRootFile( output_filename, checkForObjects=["Events"]) and args.overwrite =='none' :
+    logger.info( "File %s found. Quit.", output_filename )
+    sys.exit(0)
+
+output_file = ROOT.TFile( output_filename, 'recreate')
+output_file.cd()
 
 output_file.cd()
 th3d_h_correlator1.Write()
