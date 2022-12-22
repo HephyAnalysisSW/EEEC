@@ -44,7 +44,7 @@ import RootTools.core.logger as _logger_rt
 logger_rt = _logger_rt.get_logger(args.logLevel, logFile = None )
 
 akjet   = fastjet.JetDefinition(fastjet.antikt_algorithm, args.jetR, fastjet.E_scheme)
-sample  = FWLiteSample( "output", args.input)
+sample  = FWLiteSample( args.output, args.input)
 
 maxEvents = -1
 if args.small: 
@@ -78,7 +78,7 @@ gRandom = ROOT.TRandom3()
 counter = 0
 reader.start()
 
-Nbins = 50
+Nbins = 150
 min_zeta = 0
 max_zeta = 2*args.jetR+0.2
 binning = np.array([ np.linspace(min_zeta,max_zeta,Nbins+1) for i in range(3)], dtype='f')

@@ -22,7 +22,6 @@ process.load('IOMC.EventVertexGenerators.VtxSmearedRealistic25ns13TeVEarly2018Co
 process.load('GeneratorInterface.Core.genFilterSummary_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
-
 import os
 maxEvents = int(os.environ["MAXEVENTS"])
 process.maxEvents = cms.untracked.PSet(
