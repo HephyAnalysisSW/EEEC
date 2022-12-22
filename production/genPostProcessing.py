@@ -212,4 +212,4 @@ output_file.Close()
 
 logger.info( "Written output file %s", output_filename )
 import pickle
-pickle.dump( file(output_filename.replace('.root', '.pkl'), 'w'), (h_correlator1, h_correlator2, binning) )
+pickle.dump(  (h_correlator1, h_correlator2, binning), file(output_filename.replace('.root', '.pkl'), 'w') )
