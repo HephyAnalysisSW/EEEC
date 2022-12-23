@@ -11,7 +11,10 @@ def getTriplets(scale, constituents, n=2, max_zeta=None, max_delta_zeta=None, de
     constituents         = np.array( [[c.px(), c.py(), c.pz()]  for c in constituents])
     # make triplet combinations
     triplet_combinations = np.array(list(itertools.combinations( range(len(constituents)), 3)))
-    c = constituents[triplet_combinations]
+    try:
+        c = constituents[triplet_combinations]
+    except IndexError:
+        return np.empty((0,3)), np.empty((0)) 
 
     zeta_values = np.zeros( ( len(c), 3), dtype='f' )
 

@@ -44,22 +44,12 @@ import RootTools.core.logger as _logger_rt
 logger_rt = _logger_rt.get_logger(args.logLevel, logFile = None )
 
 akjet   = fastjet.JetDefinition(fastjet.antikt_algorithm, args.jetR, fastjet.E_scheme)
-sample  = FWLiteSample( args.output, args.input)
+sample  = FWLiteSample( "output", args.input)
 
 maxEvents = -1
 if args.small: 
     args.output    += "_small"
     maxEvents       = 500 
-
-# output directory
-output_directory = os.path.join(".") 
-
-if not os.path.exists( output_directory ): 
-    try:
-        os.makedirs( output_directory )
-    except OSError:
-        pass
-    logger.info( "Created output directory %s", output_directory )
 
 # event content
 products = {
@@ -148,10 +138,11 @@ while reader.run( ):
     
     minpT = 300 # Set some minimal jet pT to ensure boosted tops that are within a single jet
     
+    scale = (initial1.p4()+initial2.p4()).M()
+
     # top quark
     triplets_top = np.empty((0,3))
     weights_top  = np.empty((0))
-    scale = (initial1.p4()+initial2.p4()).M()
     if jet_top is not None:
         if jet_top.pt() > minpT:
             # Get triplets
@@ -185,7 +176,7 @@ while reader.run( ):
     timediffs.append(time.time() - t_start)
 
 logger.info( "Done with running over %i events.", reader.nEvents )
-logger.info( "  Took %3.2f seconds per event (average)", sum(timediffs)/len(timediffs) )
+logger.info( "Took %3.2f seconds per event (average)", sum(timediffs)/len(timediffs) )
 
 th3d_h_correlator1 = make_TH3D((h_correlator1, (xedges, yedges, zedges)))
 th3d_h_correlator1.SetName("EEEC1")
@@ -194,7 +185,7 @@ th3d_h_correlator2 = make_TH3D((h_correlator2, (xedges, yedges, zedges)))
 th3d_h_correlator2.SetName("EEEC2")
 th3d_h_correlator2.SetTitle("EEEC2")
 
-output_filename =  os.path.join(output_directory, sample.name + '.root')
+output_filename =  args.output + '.root'
 if os.path.exists( output_filename ) and checkRootFile( output_filename, checkForObjects=["Events"]) and args.overwrite =='none' :
     logger.info( "File %s found. Quit.", output_filename )
     sys.exit(0)
