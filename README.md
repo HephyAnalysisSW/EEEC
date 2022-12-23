@@ -6,8 +6,8 @@ cmsrel CMSSW_10_2_15_patch2
 cd CMSSW_10_2_15_patch2/src
 cmsenv
 git cms-init
-git clone https://github.com/HephyAnalysisSW/RootTools
-git clone https://github.com/HephyAnalysisSW/EEEC.git 
+git clone git@github.com:HephyAnalysisSW/RootTools.git
+git clone git@github.com:HephyAnalysisSW/EEEC.git
 scram setup fastjet
 scram setup fastjet-contrib
 scram b -j40
