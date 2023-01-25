@@ -135,6 +135,8 @@ while reader.run( ):
         if deltaRGenparts(jet, antitop) < dRmin_antitop:
             dRmin_antitop = deltaRGenparts(jet, antitop)
             jet_antitop   = jet
+
+    if jet_top is not None and jet_antitop is not None and jet_antitop==jet_top: continue
     
     minpT = 300 # Set some minimal jet pT to ensure boosted tops that are within a single jet
     
