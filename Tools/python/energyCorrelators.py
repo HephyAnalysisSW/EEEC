@@ -5,10 +5,16 @@ import numpy as np
 import itertools
 
 def getTriplets(scale, constituents, n=2, max_zeta=None, max_delta_zeta=None, delta_legs=None, shortest_side=None):
-    triplets = []
 
     # transform coordinates to np.array
-    constituents         = np.array( [[c.px(), c.py(), c.pz()]  for c in constituents])
+    constituents         = np.array( [[c.E(), c.px(), c.py(), c.pz()]  for c in constituents])
+    
+    # keep track of indices
+    E  = 0
+    px = 1
+    py = 2
+    pz = 3
+    
     # make triplet combinations
     triplet_combinations = np.array(list(itertools.combinations( range(len(constituents)), 3)))
     try:
@@ -18,9 +24,9 @@ def getTriplets(scale, constituents, n=2, max_zeta=None, max_delta_zeta=None, de
 
     zeta_values = np.zeros( ( len(c), 3), dtype='f' )
 
-    zeta_values[:,0] = (c[:,0,0]*c[:,1,0]+c[:,0,1]*c[:,1,1]+c[:,0,2]*c[:,1,2])/np.sqrt( ((c[:,0,:]**2).sum(axis=1))*((c[:,1,:]**2).sum(axis=1)) ) 
-    zeta_values[:,1] = (c[:,0,0]*c[:,2,0]+c[:,0,1]*c[:,2,1]+c[:,0,2]*c[:,2,2])/np.sqrt( ((c[:,0,:]**2).sum(axis=1))*((c[:,2,:]**2).sum(axis=1)) ) 
-    zeta_values[:,2] = (c[:,1,0]*c[:,2,0]+c[:,1,1]*c[:,2,1]+c[:,1,2]*c[:,2,2])/np.sqrt( ((c[:,1,:]**2).sum(axis=1))*((c[:,2,:]**2).sum(axis=1)) ) 
+    zeta_values[:,0] = (c[:,0,px]*c[:,1,px]+c[:,0,py]*c[:,1,py]+c[:,0,pz]*c[:,1,pz])/np.sqrt( (c[:,0,px]**2+c[:,0,py]**2+c[:,0,pz]**2)*(c[:,1,px]**2+c[:,1,py]**2+c[:,1,pz]**2) ) 
+    zeta_values[:,1] = (c[:,0,px]*c[:,2,px]+c[:,0,py]*c[:,2,py]+c[:,0,pz]*c[:,2,pz])/np.sqrt( (c[:,0,px]**2+c[:,0,py]**2+c[:,0,pz]**2)*(c[:,2,px]**2+c[:,2,py]**2+c[:,2,pz]**2) ) 
+    zeta_values[:,2] = (c[:,1,px]*c[:,2,px]+c[:,1,py]*c[:,2,py]+c[:,1,pz]*c[:,2,pz])/np.sqrt( (c[:,1,px]**2+c[:,1,py]**2+c[:,1,pz]**2)*(c[:,2,px]**2+c[:,2,py]**2+c[:,2,pz]**2) ) 
     zeta_values = (1-zeta_values)/2.
 
     zeta_values = np.sort( zeta_values, axis=1)
@@ -42,7 +48,12 @@ def getTriplets(scale, constituents, n=2, max_zeta=None, max_delta_zeta=None, de
     c           = c[mask]
     del mask
 
-    weight = ( np.sqrt( (c[:,0,0]**2+c[:,0,1]**2)*(c[:,1,0]**2+c[:,1,1]**2)*(c[:,2,0]**2+c[:,2,1]**2)) / scale**3 )**n
+    # pT weight
+    # weight = ( np.sqrt( (c[:,0,px]**2+c[:,0,py]**2)*(c[:,1,px]**2+c[:,1,py]**2)*(c[:,2,px]**2+c[:,2,py]**2)) / scale**3 )**n
+    
+    # energy weight 
+    weight = ( c[:,0,E]*c[:,1,E]*c[:,2,E] / scale**3 )**n
+    
 
     return zeta_values, weight
 

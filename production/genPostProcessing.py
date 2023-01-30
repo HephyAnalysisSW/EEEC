@@ -68,13 +68,24 @@ gRandom = ROOT.TRandom3()
 counter = 0
 reader.start()
 
-Nbins = 150
-min_zeta = 0
-max_zeta = 2*args.jetR+0.2
-binning = np.array([ np.linspace(min_zeta,max_zeta,Nbins+1) for i in range(3)], dtype='f')
+NbinsA = 100
+NbinsB = 100
+min_zeta = 0.0
+interm_zeta = 0.15
+max_zeta = 1.0
+
+binsA = np.linspace(min_zeta, interm_zeta, NbinsA+1)
+binsB = np.linspace(interm_zeta, max_zeta, NbinsB+1)
+binsB = np.delete(binsB, 0) # remove first number because it is already part of "binsA"
+binning = np.array([ np.append(binsA, binsB) for i in range(3)], dtype='f')
 
 h_mindR_top_jet = ROOT.TH1D("mindR_top_jet", "min[#Delta R(top, jet)]", 10, 0, 3)
 h_mjet = ROOT.TH1F("m_jet", "m_{jet}", 30, 0, 300)
+h_ptjet = ROOT.TH1F("pTjet", "Jet p_{T}", 50, 0, 1000)
+h_pttop = ROOT.TH1F("pTtop", "Top quark p_{T}", 50, 0, 1000)
+h_Ejet = ROOT.TH1F("Ejet", "Jet energy", 50, 0, 1000)
+h_Etop = ROOT.TH1F("Etop", "Top quark energy", 50, 0, 1000)
+h_dPhi = ROOT.TH1F("dPhi", "#Delta #Phi (jet1, jet2)", 35, 0, 7.0)
 h_Nconstituents = ROOT.TH1D("Nconstituents", "Nconstituents", 20, 0, 200)
 
 timediffs = []
@@ -114,6 +125,12 @@ while reader.run( ):
         print "Did not find 2 incoming partons, skip this event..."
         continue
     
+    h_pttop.Fill(top.pt())
+    h_pttop.Fill(antitop.pt())
+    h_Etop.Fill(top.energy())
+    h_Etop.Fill(antitop.energy())
+    
+    
     # Get parton level/particle level/hadron level particles 
     
     #showered   = [p for p in reader.products['gp'] if abs(p.status())>=51 and abs(p.status())<80]
@@ -146,26 +163,31 @@ while reader.run( ):
     triplets_top = np.empty((0,3))
     weights_top  = np.empty((0))
     if jet_top is not None:
-        if jet_top.pt() > minpT:
-            # Get triplets
-            triplets_top, weights_top = ec.getTriplets(scale, jet_top.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
-            # Fill jet hists
-            h_mindR_top_jet.Fill(dRmin_top)
-            h_mjet.Fill(jet_top.m())
-            h_Nconstituents.Fill(len(jet_top.constituents()))
+        # Get triplets
+        triplets_top, weights_top = ec.getTriplets(scale, jet_top.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
+        # Fill jet hists
+        h_mindR_top_jet.Fill(dRmin_top)
+        h_mjet.Fill(jet_top.m())
+        h_Ejet.Fill(jet_top.E())
+        h_ptjet.Fill(jet_top.pt())
+        h_Nconstituents.Fill(len(jet_top.constituents()))
 
     # anti top quark
     triplets_antitop = np.empty((0,3)) 
     weights_antitop  = np.empty((0))
     if jet_antitop is not None:
-        if jet_antitop.pt() > minpT:
-            # Get triplets
-            triplets_antitop, weights_antitop = ec.getTriplets(scale, jet_antitop.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
-            # Fill jet hists
-            h_mindR_top_jet.Fill(dRmin_antitop)
-            h_mjet.Fill(jet_antitop.m())
-            h_Nconstituents.Fill(len(jet_antitop.constituents()))            
+        # Get triplets
+        triplets_antitop, weights_antitop = ec.getTriplets(scale, jet_antitop.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
+        # Fill jet hists
+        h_mindR_top_jet.Fill(dRmin_antitop)
+        h_mjet.Fill(jet_antitop.m())
+        h_Ejet.Fill(jet_antitop.E())
+        h_ptjet.Fill(jet_antitop.pt())
+        h_Nconstituents.Fill(len(jet_antitop.constituents()))            
 
+    if jet_top is not None and jet_antitop is not None:
+        h_dPhi.Fill(abs(jet_top.phi()-jet_antitop.phi()))
+        
     if len(triplets_top)+len(triplets_antitop)>0:
         if first:
             h_correlator1, (xedges, yedges, zedges) = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))
@@ -200,9 +222,14 @@ th3d_h_correlator1.Write()
 th3d_h_correlator2.Write()
 h_mindR_top_jet.Write()
 h_mjet.Write()
+h_ptjet.Write()
+h_pttop.Write()
+h_Etop.Write()
+h_Ejet.Write()
+h_dPhi.Write()
 h_Nconstituents.Write()
 output_file.Close()
 
 logger.info( "Written output file %s", output_filename )
-import pickle
-pickle.dump(  (h_correlator1, h_correlator2, binning), file(output_filename.replace('.root', '.pkl'), 'w') )
+# import pickle
+# pickle.dump(  (h_correlator1, h_correlator2, binning), file(output_filename.replace('.root', '.pkl'), 'w') )
