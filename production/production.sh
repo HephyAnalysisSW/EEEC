@@ -22,6 +22,6 @@ export MW=$4
 # Run the cmsRun
 #ipython -i $PWD/production.py || exit $? ;
 cmsRun -e $PWD/production.py || exit $? ;
-python genPostProcessing.py --input $PRODUCTION_TMP_FILE --output $OUTPUTDIR/output_$POSTFIX
+python genPostProcessing.py --input $PRODUCTION_TMP_FILE --output $OUTPUTDIR/output_${COM}_${MT}_${MW}_$POSTFIX
 
 rm $PRODUCTION_TMP_FILE 
