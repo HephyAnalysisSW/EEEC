@@ -89,7 +89,7 @@ max_zeta = 1.0 / binfactor[comstring]
 binsA = np.linspace(min_zeta, interm_zeta, NbinsA+1)
 binsB = np.linspace(interm_zeta, max_zeta, NbinsB+1)
 binsB = np.delete(binsB, 0) # remove first number because it is already part of "binsA"
-binning = np.array([ np.append(binsA, binsB) for i in range(3)], dtype='f')
+binning = np.array([ np.append(binsA, binsB) for i in range(3)], dtype='d')
 
 h_mindR_top_jet = ROOT.TH1D("mindR_top_jet", "min[#Delta R(top, jet)]", 10, 0, 3)
 h_mjet = ROOT.TH1F("m_jet", "m_{jet}", 30, 0, 300)
