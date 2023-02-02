@@ -8,6 +8,7 @@ argParser = argparse.ArgumentParser(description = "Argument parser")
 argParser.add_argument('--logLevel',       action='store',      default='INFO', nargs='?', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'TRACE', 'NOTSET'], help="Log level for logging")
 argParser.add_argument('--file',           action='store',      default='output.root')
 argParser.add_argument('--mode',           action='store',      default='edges')
+argParser.add_argument('--round',          action='store_true', default=False)
 argParser.add_argument('--reduce',         action='store_true', default=False)
 args = argParser.parse_args()
 
@@ -63,6 +64,19 @@ for histname in histnames:
                 upZ = hist.GetZaxis().GetBinUpEdge(binZ)
                 content = hist.GetBinContent(binX, binY, binZ)
                 error   = hist.GetBinError(binX, binY, binZ)
+                if args.round:
+                    centerX = round(centerX, 7)
+                    centerY = round(centerY, 7)
+                    centerZ = round(centerZ, 7)
+                    widthX = round(widthX, 7)
+                    widthY = round(widthY, 7)
+                    widthZ = round(widthZ, 7)
+                    lowX = round(lowX, 7)
+                    lowY = round(lowY, 7)
+                    lowZ = round(lowZ, 7)
+                    upX = round(upX, 7)
+                    upY = round(upY, 7)
+                    upZ = round(upZ, 7)
                 row = []
                 if args.mode == "numbers":
                     row = [binX, binY, binZ, content, error]
