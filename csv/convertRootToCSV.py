@@ -62,13 +62,14 @@ for histname in histnames:
                 upY = hist.GetYaxis().GetBinUpEdge(binY)
                 upZ = hist.GetZaxis().GetBinUpEdge(binZ)
                 content = hist.GetBinContent(binX, binY, binZ)
+                error   = hist.GetBinError(binX, binY, binZ)
                 row = []
                 if args.mode == "numbers":
-                    row = [binX, binY, binZ, content]
+                    row = [binX, binY, binZ, content, error]
                 elif args.mode == "centers":
-                    row = [centerX, centerY, centerZ, widthX, widthY, widthZ, content]
+                    row = [centerX, centerY, centerZ, widthX, widthY, widthZ, content, error]
                 elif args.mode == "edges":
-                    row = [lowX, upX, lowY, upY, lowZ, upZ, content]
+                    row = [lowX, upX, lowY, upY, lowZ, upZ, content, error]
                 else:
                     raise RuntimeError( "mode %s not known", args.mode)
                 writer.writerow(row)
