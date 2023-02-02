@@ -32,7 +32,10 @@ process.maxEvents = cms.untracked.PSet(
 MT  = float(os.environ["MT"])
 MW  = float(os.environ["MW"])
 COM = float(os.environ["COM"])
-POSTFIX = os.environ["POSTFIX"]
+if os.environ.has_key('PRODUCTION_TMP_FILE'):
+    PRODUCTION_TMP_FILE = os.environ['PRODUCTION_TMP_FILE']
+else:
+    PRODUCTION_TMP_FILE = "PRODUCTION_TMP_FILE.root"
 
 print("Will process %i events for c.o.m %3.2f, mT = %3.2f, mW=%3.2f"%(maxEvents, COM, MT, MW))
 # Input source
@@ -59,7 +62,7 @@ process.RECOSIMoutput = cms.OutputModule("PoolOutputModule",
         dataTier = cms.untracked.string('GEN'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('file:production%s.root'%( '_'+POSTFIX if POSTFIX else '')),
+    fileName = cms.untracked.string('file:'+PRODUCTION_TMP_FILE),
     outputCommands = process.RECOSIMEventContent.outputCommands,
     splitLevel = cms.untracked.int32(0)
 )
@@ -71,6 +74,12 @@ process.genstepfilter.triggerConditions=cms.vstring("generation_step")
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, '102X_upgrade2018_realistic_v11', '')
 
+process.load("Configuration.StandardSequences.SimulationRandomNumberGeneratorSeeds_cff")
+process.RandomNumberGeneratorService.generator = process.RandomNumberGeneratorService.generator.clone()
+
+import random
+process.RandomNumberGeneratorService.generator.initialSeed = cms.untracked.uint32(random.randint(0,10**9))
+
 process.generator = cms.EDFilter("Pythia8GeneratorFilter",
 #process.generator = cms.EDFilter("Pythia8HadronizerFilter",
     PythiaParameters = cms.PSet(
@@ -78,6 +87,8 @@ process.generator = cms.EDFilter("Pythia8GeneratorFilter",
             'processParameters'
         ),
         processParameters = cms.vstring(
+            #'Random:setSeed = on',
+            #'Random:seed = on',
             'Beams:idA = 11',
             'Beams:idB = -11',
             'PDF:lepton = off',
