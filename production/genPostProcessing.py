@@ -68,11 +68,23 @@ gRandom = ROOT.TRandom3()
 counter = 0
 reader.start()
 
+# Make binning finer for larger COM energy
+binfactor = {
+    "1000": 1.0,
+    "1250": 1.5,
+    "1500": 2.0,
+}
+comstring = args.output.split("_")[1]
+if comstring not in binfactor.keys():
+    logger.info( "No binning scheme defined for COM energy = %s. Quit.", comstring )
+    sys.exit(0)
+
+
 NbinsA = 100
 NbinsB = 100
 min_zeta = 0.0
-interm_zeta = 0.15
-max_zeta = 1.0
+interm_zeta = 0.15 / binfactor[comstring]
+max_zeta = 1.0 / binfactor[comstring]
 
 binsA = np.linspace(min_zeta, interm_zeta, NbinsA+1)
 binsB = np.linspace(interm_zeta, max_zeta, NbinsB+1)
