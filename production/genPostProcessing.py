@@ -70,9 +70,13 @@ reader.start()
 
 # Make binning finer for larger COM energy
 binfactor = {
+    "800" : 0.6,
     "1000": 1.0,
+    "1200": 1.5,
     "1250": 1.5,
+    "1400": 2.0,
     "1500": 2.0,
+    "1600": 2.5,    
 }
 comstring = args.output.split("_")[1]
 if comstring not in binfactor.keys():
@@ -97,6 +101,7 @@ h_ptjet = ROOT.TH1F("pTjet", "Jet p_{T}", 50, 0, 1000)
 h_pttop = ROOT.TH1F("pTtop", "Top quark p_{T}", 50, 0, 1000)
 h_Ejet = ROOT.TH1F("Ejet", "Jet energy", 50, 0, 1000)
 h_Etop = ROOT.TH1F("Etop", "Top quark energy", 50, 0, 1000)
+h_EW = ROOT.TH1F("EW", "W boson energy", 50, 0, 1000)
 h_dPhi = ROOT.TH1F("dPhi", "#Delta #Phi (jet1, jet2)", 35, 0, 7.0)
 h_Nconstituents = ROOT.TH1D("Nconstituents", "Nconstituents", 20, 0, 200)
 
@@ -115,6 +120,8 @@ while reader.run( ):
     # Find incoming particles and top quarks
     top = None
     antitop = None
+    wplus = None
+    wminus = None
     initial1 = None
     initial2 = None
     hard_scatter = [p for p in reader.products['gp'] if p.status() in [21,22] ] 
@@ -127,6 +134,10 @@ while reader.run( ):
             initial1 = p
         elif p.pdgId() == -11:
             initial2 = p
+        elif p.pdgId() == 24:
+            wplus = p 
+        elif p.pdgId() == -24:
+            wminus = p
         # print i, "pdgId = %i, status = %i" %(p.pdgId(), p.status())
 
     if top is None or antitop is None:
@@ -137,12 +148,17 @@ while reader.run( ):
         print "Did not find 2 incoming partons, skip this event..."
         continue
     
+    if wplus is None or wminus is None:
+        print "Did not find 2 W bosons, skip this event..."
+        continue    
+    
     h_pttop.Fill(top.pt())
     h_pttop.Fill(antitop.pt())
     h_Etop.Fill(top.energy())
     h_Etop.Fill(antitop.energy())
-    
-    
+    h_EW.Fill(wplus.energy())
+    h_EW.Fill(wminus.energy()) 
+       
     # Get parton level/particle level/hadron level particles 
     
     #showered   = [p for p in reader.products['gp'] if abs(p.status())>=51 and abs(p.status())<80]
@@ -204,12 +220,12 @@ while reader.run( ):
         if first:
             h_correlator1,       (xedges, yedges, zedges) = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))
             h_correlator2,       (xedges, yedges, zedges) = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)
-            h_correlator2_sumw2, (xedges, yedges, zedges) = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**4)
+            # h_correlator2_sumw2, (xedges, yedges, zedges) = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**4)
             first = False
         else:
             h_correlator1       += np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))   [0]
             h_correlator2       += np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)[0]
-            h_correlator2_sumw2 += np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**4)[0]
+            # h_correlator2_sumw2 += np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**4)[0]
  
     timediffs.append(time.time() - t_start)
 
@@ -219,7 +235,7 @@ logger.info( "Took %3.2f seconds per event (average)", sum(timediffs)/len(timedi
 th3d_h_correlator1 = make_TH3D(h_correlator1, (xedges, yedges, zedges), sumw2=h_correlator2)
 th3d_h_correlator1.SetName("EEEC1")
 th3d_h_correlator1.SetTitle("EEEC1")
-th3d_h_correlator2 = make_TH3D(h_correlator2, (xedges, yedges, zedges), sumw2=h_correlator2_sumw2)
+th3d_h_correlator2 = make_TH3D(h_correlator2, (xedges, yedges, zedges), sumw2=None)
 th3d_h_correlator2.SetName("EEEC2")
 th3d_h_correlator2.SetTitle("EEEC2")
 
@@ -239,6 +255,7 @@ h_mjet.Write()
 h_ptjet.Write()
 h_pttop.Write()
 h_Etop.Write()
+h_EW.Write()
 h_Ejet.Write()
 h_dPhi.Write()
 h_Nconstituents.Write()
