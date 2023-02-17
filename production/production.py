@@ -32,12 +32,13 @@ process.maxEvents = cms.untracked.PSet(
 MT  = float(os.environ["MT"])
 MW  = float(os.environ["MW"])
 COM = float(os.environ["COM"])
+HADSWITCH = str(os.environ["HADSWITCH"])
 if os.environ.has_key('PRODUCTION_TMP_FILE'):
     PRODUCTION_TMP_FILE = os.environ['PRODUCTION_TMP_FILE']
 else:
     PRODUCTION_TMP_FILE = "PRODUCTION_TMP_FILE.root"
 
-print("Will process %i events for c.o.m %3.2f, mT = %3.2f, mW=%3.2f"%(maxEvents, COM, MT, MW))
+print("Will process %i events for c.o.m %3.2f, mT = %3.2f, mW=%3.2f, Hadronization: %s"%(maxEvents, COM, MT, MW, HADSWITCH))
 # Input source
 process.source = cms.Source("EmptySource")
 
@@ -98,8 +99,8 @@ process.generator = cms.EDFilter("Pythia8GeneratorFilter",
             #'ProcessLevel:all = on',# parton level
             #'PartonLevel:all = off',#parton level
 
-            ### no hadronization 
-            #'HadronLevel:Hadronize = off',
+            ### hadronization 
+            'HadronLevel:Hadronize = %s'%HADSWITCH,
 
             '6:m0 = %f'%MT,
             '6:mWidth = 1.43',
