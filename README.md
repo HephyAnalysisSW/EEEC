@@ -17,9 +17,16 @@ scram b -j40
 Produce 27 events at COM=1000 GeV with mT=172.5, mW=80.4 and hadronization turned on:
 ```
 cd $CMSSW_BASE/src/EEEC/production
-singularity run -B /eos -B /cvmfs -B /etc/grid-security --home $PWD:$PWD /cvmfs/unpacked.cern.ch/registry.hub.docker.com/cmssw/slc6:x86_64 $(echo $(pwd)/production.sh 100000 1000 172.5 80.4 on)
+singularity run -B /eos -B /cvmfs -B /etc/grid-security --home $PWD:$PWD /cvmfs/unpacked.cern.ch/registry.hub.docker.com/cmssw/slc6:x86_64 $(echo $(pwd)/production.sh 27 1000 172.5 80.4 on)
 
 ```
+
+Produce 27 pp events at COM=13 TeV  with mT=172.5, mW=80.4, MPI turned off and hadronization turned off:
+```
+cd $CMSSW_BASE/src/EEEC/production
+singularity run -B /eos -B /cvmfs -B /etc/grid-security --home $PWD:$PWD /cvmfs/unpacked.cern.ch/registry.hub.docker.com/cmssw/slc6:x86_64 $(echo $(pwd)/production_pp.sh 27 13000 172.5 80.4 off off)
+```
+
 
 # How to run production on lxplus
 Produce 27 events at COM=1000 GeV with mT=172.5, mW=80.4 and hadronization turned on:
