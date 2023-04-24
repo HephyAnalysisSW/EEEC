@@ -76,7 +76,7 @@ binfactor = {
     "1250": 1.5,
     "1400": 2.0,
     "1500": 2.0,
-    "1600": 2.5,    
+    "1600": 2.5,
 }
 comstring = args.output.split("_")[1]
 if comstring not in binfactor.keys():
