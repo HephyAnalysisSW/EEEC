@@ -1,7 +1,7 @@
 # Auto generated configuration file
-# using: 
-# Revision: 1.19 
-# Source: /local/reps/CMSSW/CMSSW/Configuration/Applications/python/ConfigBuilder.py,v 
+# using:
+# Revision: 1.19
+# Source: /local/reps/CMSSW/CMSSW/Configuration/Applications/python/ConfigBuilder.py,v
 # with command line options: Configuration/GenProduction/python/EXO-RunIIFall18GS-02638-fragment.py --python_filename EXO-RunIIFall18GS-02638_1_cfg.py --eventcontent RECOSIM --customise Configuration/DataProcessing/Utils.addMonitoring --datatier GEN --fileout file:EXO-RunIIFall18GS-02638.root --conditions 102X_upgrade2018_realistic_v11 --beamspot Realistic25ns13TeVEarly2018Collision --customise_commands process.source.numberEventsInLuminosityBlock=cms.untracked.uint32(100) --step GEN --geometry DB:Extended --era Run2_2018 --no_exec --mc -n 219
 import FWCore.ParameterSet.Config as cms
 
@@ -29,17 +29,21 @@ process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(maxEvents)
 )
 
+
 MT  = float(os.environ["MT"])
 MW  = float(os.environ["MW"])
 COM = float(os.environ["COM"])
 HADSWITCH = str(os.environ["HADSWITCH"])
 MPISWITCH = str(os.environ["MPISWITCH"])
+PTMIN = float(os.environ["PTMIN"])
+PTMAX = float(os.environ["PTMAX"])
+
 if os.environ.has_key('PRODUCTION_TMP_FILE'):
     PRODUCTION_TMP_FILE = os.environ['PRODUCTION_TMP_FILE']
 else:
     PRODUCTION_TMP_FILE = "PRODUCTION_TMP_FILE.root"
 
-print("Will process %i pp events for c.o.m %3.2f, mT = %3.2f, mW=%3.2f, MPI: %s, Hadronization: %s"%(maxEvents, COM, MT, MW, MPISWITCH, HADSWITCH))
+print("Will process %i pp events for c.o.m %3.2f, mT = %3.2f, mW=%3.2f, %3.2f < pT < %3.2f, MPI: %s, Hadronization: %s"%(maxEvents, COM, MT, MW, PTMIN, PTMAX, MPISWITCH, HADSWITCH))
 # Input source
 process.source = cms.Source("EmptySource")
 
@@ -93,7 +97,7 @@ process.generator = cms.EDFilter("Pythia8GeneratorFilter",
             #'Random:seed = on',
             'Beams:idA = 2212',
             'Beams:idB = -2212',
-            
+
             'Top:gg2ttbar = on',
             'Top:qqbar2ttbar = on',
 
@@ -104,12 +108,12 @@ process.generator = cms.EDFilter("Pythia8GeneratorFilter",
             #'ProcessLevel:all = on',# parton level
             #'PartonLevel:all = off',#parton level
 
-            ### hadronization 
+            ### hadronization
             'HadronLevel:Hadronize = %s'%HADSWITCH,
 
             ### Set hard pT ranges:
-            'PhaseSpace:pTHatMin = 300.',
-            'PhaseSpace:pTHatMax = 1200.',
+            'PhaseSpace:pTHatMin = %f'%PTMIN,
+            'PhaseSpace:pTHatMax = %f'%PTMAX,
 
             '6:m0 = %f'%MT,
             '6:mWidth = 1.43',
@@ -138,12 +142,12 @@ from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)
 # filter all path with the production filter sequence
 for path in process.paths:
-	getattr(process,path)._seq = process.generator * getattr(process,path)._seq 
+	getattr(process,path)._seq = process.generator * getattr(process,path)._seq
 
 # customisation of the process.
 
 # Automatic addition of the customisation function from Configuration.DataProcessing.Utils
-from Configuration.DataProcessing.Utils import addMonitoring 
+from Configuration.DataProcessing.Utils import addMonitoring
 
 #call to customisation function addMonitoring imported from Configuration.DataProcessing.Utils
 process = addMonitoring(process)

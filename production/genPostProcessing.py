@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-''' EEEC histograms 
+''' EEEC histograms
 '''
 #
 # Standard imports and batch mode
@@ -25,7 +25,7 @@ from EEEC.Tools.helpers import make_TH3D
 import EEEC.Tools.energyCorrelators as ec
 
 # Arguments
-# 
+#
 import argparse
 argParser = argparse.ArgumentParser(description = "Argument parser")
 argParser.add_argument('--logLevel',           action='store',      default='INFO',          nargs='?', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'TRACE', 'NOTSET'], help="Log level for logging")
@@ -47,9 +47,9 @@ akjet   = fastjet.JetDefinition(fastjet.antikt_algorithm, args.jetR, fastjet.E_s
 sample  = FWLiteSample( "output", args.input)
 
 maxEvents = -1
-if args.small: 
+if args.small:
     args.output    += "_small"
-    maxEvents       = 500 
+    maxEvents       = 500
 
 # event content
 products = {
@@ -124,10 +124,10 @@ while reader.run( ):
     wminus = None
     initial1 = None
     initial2 = None
-    hard_scatter = [p for p in reader.products['gp'] if p.status() in [21,22] ] 
+    hard_scatter = [p for p in reader.products['gp'] if p.status() in [21,22] ]
     for i, p in enumerate(hard_scatter):
         if p.pdgId() == 6:
-            top = p 
+            top = p
         elif p.pdgId() == -6:
             antitop = p
         elif p.pdgId() == 11:
@@ -135,7 +135,7 @@ while reader.run( ):
         elif p.pdgId() == -11:
             initial2 = p
         elif p.pdgId() == 24:
-            wplus = p 
+            wplus = p
         elif p.pdgId() == -24:
             wminus = p
         # print i, "pdgId = %i, status = %i" %(p.pdgId(), p.status())
@@ -147,20 +147,20 @@ while reader.run( ):
     if initial1 is None or initial2 is None:
         print "Did not find 2 incoming partons, skip this event..."
         continue
-    
+
     if wplus is None or wminus is None:
         print "Did not find 2 W bosons, skip this event..."
-        continue    
-    
+        continue
+
     h_pttop.Fill(top.pt())
     h_pttop.Fill(antitop.pt())
     h_Etop.Fill(top.energy())
     h_Etop.Fill(antitop.energy())
     h_EW.Fill(wplus.energy())
-    h_EW.Fill(wminus.energy()) 
-       
-    # Get parton level/particle level/hadron level particles 
-    
+    h_EW.Fill(wminus.energy())
+
+    # Get parton level/particle level/hadron level particles
+
     #showered   = [p for p in reader.products['gp'] if abs(p.status())>=51 and abs(p.status())<80]
     particles = [p for p in reader.products['gp'] if p.numberOfDaughters()==0]
 
@@ -172,7 +172,7 @@ while reader.run( ):
     jet_antitop     = None
     dRmin_top       = args.jetR
     dRmin_antitop   = args.jetR
-    
+
     for jet in sortedJets:
         if deltaRGenparts(jet, top) < dRmin_top:
             dRmin_top   = deltaRGenparts(jet, top)
@@ -182,9 +182,9 @@ while reader.run( ):
             jet_antitop   = jet
 
     if jet_top is not None and jet_antitop is not None and jet_antitop==jet_top: continue
-    
+
     minpT = 300 # Set some minimal jet pT to ensure boosted tops that are within a single jet
-    
+
     scale = (initial1.p4()+initial2.p4()).M()
 
     # top quark
@@ -201,7 +201,7 @@ while reader.run( ):
         h_Nconstituents.Fill(len(jet_top.constituents()))
 
     # anti top quark
-    triplets_antitop = np.empty((0,3)) 
+    triplets_antitop = np.empty((0,3))
     weights_antitop  = np.empty((0))
     if jet_antitop is not None:
         # Get triplets
@@ -211,11 +211,11 @@ while reader.run( ):
         h_mjet.Fill(jet_antitop.m())
         h_Ejet.Fill(jet_antitop.E())
         h_ptjet.Fill(jet_antitop.pt())
-        h_Nconstituents.Fill(len(jet_antitop.constituents()))            
+        h_Nconstituents.Fill(len(jet_antitop.constituents()))
 
     if jet_top is not None and jet_antitop is not None:
         h_dPhi.Fill(abs(jet_top.phi()-jet_antitop.phi()))
-        
+
     if len(triplets_top)+len(triplets_antitop)>0:
         if first:
             h_correlator1,       (xedges, yedges, zedges) = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))
@@ -226,7 +226,7 @@ while reader.run( ):
             h_correlator1       += np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))   [0]
             h_correlator2       += np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)[0]
             # h_correlator2_sumw2 += np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**4)[0]
- 
+
     timediffs.append(time.time() - t_start)
 
 logger.info( "Done with running over %i events.", reader.nEvents )
