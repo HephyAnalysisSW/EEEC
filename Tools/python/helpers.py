@@ -44,7 +44,7 @@ def make_TH3D(vals, binning, sumw2=None):
     for i_bx in range(1, histo.GetNbinsX()+1):
         for i_by in range(1, histo.GetNbinsY()+1):
             for i_bz in range(1, histo.GetNbinsZ()+1):
-    
+
                 histo.SetBinContent(i_bx, i_by, i_bz, vals[i_bx-1][i_by-1][i_bz-1])
                 if sumw2 is not None:
                     histo.SetBinError(i_bx, i_by, i_bz, sqrt(sumw2[i_bx-1][i_by-1][i_bz-1]))
@@ -63,7 +63,7 @@ def deltaR2(l1, l2):
 
 def deltaR(l1, l2):
     return sqrt(deltaR2(l1,l2))
-    
+
 def deltaRGenparts(g1, g2):
     dphi = deltaPhi(g1.phi(), g2.phi())
     deta = g1.eta() - g2.eta()
