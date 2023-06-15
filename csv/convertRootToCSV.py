@@ -7,12 +7,15 @@ import argparse
 argParser = argparse.ArgumentParser(description = "Argument parser")
 argParser.add_argument('--logLevel',       action='store',      default='INFO', nargs='?', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'TRACE', 'NOTSET'], help="Log level for logging")
 argParser.add_argument('--file',           action='store',      default='output.root')
+argParser.add_argument('--ptmin',          action='store',      default=None)
+argParser.add_argument('--ptmax',          action='store',      default=None)
 argParser.add_argument('--mode',           action='store',      default='edges')
 argParser.add_argument('--round',          action='store_true', default=False)
 argParser.add_argument('--reduce',         action='store_true', default=False)
+
 args = argParser.parse_args()
 
-# This function is a copy from the HEPHY framework 
+# This function is a copy from the HEPHY framework
 def getObjFromFile(fname, hname):
     f = ROOT.TFile(fname)
     assert not f.IsZombie()
@@ -29,6 +32,13 @@ if args.mode not in ["edges", "centers", "numbers"]:
 
 filename = args.file
 histnames = ["EEEC1", "EEEC2"]
+
+if args.ptmin is not None and args.ptmax is not None:
+    histnames = [
+        "EEEC1_jetpt"+args.ptmin+"to"+args.ptmax,
+        "EEEC2_jetpt"+args.ptmin+"to"+args.ptmax,
+    ]
+
 
 suffix = ""
 if args.reduce:
@@ -90,7 +100,6 @@ for histname in histnames:
         if binX > n_tenth*NbinsX/10:
             print "%i percent of the bins converted"%(n_tenth*10)
             n_tenth+=1
-            
+
     f_csv.close()
     print "Converting histogram", histname, "done."
-    
