@@ -97,17 +97,6 @@ def getTriplets_pp(scale, constituents, n=2, max_zeta=None, max_delta_zeta=None,
 
     zeta_values = np.sort( zeta_values, axis=1)
 
-    # Also create a transformed version:
-    # X = (zeta_medium+zeta_large)/2
-    # Y = zeta_large-zeta_medium
-    # Z = zeta_short
-    # 1. Make an array with same dimensions and fill it with zeros
-    # 2. Transform into new values
-    transformed_values = np.full_like(zeta_values, 0)
-    transformed_values[:,0] = (zeta_values[:,0]+zeta_values[:,1])/2
-    transformed_values[:,1] = zeta_values[:,0]-zeta_values[:,1]
-    transformed_values[:,2] = zeta_values[:,2]
-
     if log:
         zeta_values = np.log10( np.sqrt(zeta_values) ) # this returns log(dR) instead of dR^2
 
@@ -131,6 +120,23 @@ def getTriplets_pp(scale, constituents, n=2, max_zeta=None, max_delta_zeta=None,
 
     # pT weight
     weight = ( c[:,0,pt]*c[:,1,pt]*c[:,2,pt] / scale**3 )**n
+
+    # Also create a transformed version:
+    # X = (zeta_medium+zeta_large)/2
+    # Y = zeta_large-zeta_medium
+    # Z = zeta_short
+    # 1. Make an array with same dimensions and fill it with zeros
+    # 2. Transform into new values
+    transformed_values = np.full_like(zeta_values, 0)
+
+    if log:
+        transformed_values[:,0] = ( pow(10, zeta_values[:,0])+pow(10, zeta_values[:,1]) )/2
+        transformed_values[:,1] = pow(10, zeta_values[:,0]) - pow(10, zeta_values[:,1])
+        transformed_values[:,2] = pow(10, zeta_values[:,2])
+    else:
+        transformed_values[:,0] = (zeta_values[:,0]+zeta_values[:,1])/2
+        transformed_values[:,1] = zeta_values[:,0]-zeta_values[:,1]
+        transformed_values[:,2] = zeta_values[:,2]
 
     return zeta_values, transformed_values, weight
 

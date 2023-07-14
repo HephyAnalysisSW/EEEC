@@ -249,6 +249,15 @@ while reader.run( ):
                 continue
             scale = jet_top.pt()
             triplets_top, new_triplets_top, weights_top = ec.getTriplets_pp(scale, jet_top.constituents(), n=1, max_zeta=1.0, max_delta_zeta=None, delta_legs=None, shortest_side=None, log=args.log)
+            print "-----------------------------------------------"
+            print triplets_top.shape
+            print new_triplets_top.shape
+            print weights_top.shape
+            if args.newHist:
+                values = new_triplets_top
+            else:
+                values = triplets_top
+
             # Fill jet hists
             for bin in ptbins:
                 minpt, maxpt, binning = ptbins[bin]
@@ -259,22 +268,13 @@ while reader.run( ):
                     h_Nconstituents[bin].Fill(len(jet_top.constituents()))
                     h_pttop[bin].Fill(top.pt())
                     h_ptW[bin].Fill(wplus.pt())
-                    if args.newHist:
-                        if not sawEvents[bin]:
-                            h_correlator1[bin],       (xedges, yedges, zedges) = np.histogramdd( new_triplets_top, binning, weights=weights_top )
-                            h_correlator2[bin],       (xedges, yedges, zedges) = np.histogramdd( new_triplets_top, binning, weights=weights_top**2 )
-                            sawEvents[bin] = True
-                        else:
-                            h_correlator1[bin]       += np.histogramdd( new_triplets_top, binning, weights=weights_top )   [0]
-                            h_correlator2[bin]       += np.histogramdd( new_triplets_top, binning, weights=weights_top**2 )[0]
+                    if not sawEvents[bin]:
+                        h_correlator1[bin],       (xedges, yedges, zedges) = np.histogramdd( values, binning, weights=weights_top )
+                        h_correlator2[bin],       (xedges, yedges, zedges) = np.histogramdd( values, binning, weights=weights_top**2 )
+                        sawEvents[bin] = True
                     else:
-                        if not sawEvents[bin]:
-                            h_correlator1[bin],       (xedges, yedges, zedges) = np.histogramdd( triplets_top, binning, weights=weights_top )
-                            h_correlator2[bin],       (xedges, yedges, zedges) = np.histogramdd( triplets_top, binning, weights=weights_top**2 )
-                            sawEvents[bin] = True
-                        else:
-                            h_correlator1[bin]       += np.histogramdd( triplets_top, binning, weights=weights_top )   [0]
-                            h_correlator2[bin]       += np.histogramdd( triplets_top, binning, weights=weights_top**2 )[0]
+                        h_correlator1[bin]       += np.histogramdd( values, binning, weights=weights_top )   [0]
+                        h_correlator2[bin]       += np.histogramdd( values, binning, weights=weights_top**2 )[0]
 
     # anti top quark
     triplets_antitop = np.empty((0,3))
@@ -286,6 +286,10 @@ while reader.run( ):
                 continue
             scale = jet_antitop.pt()
             triplets_antitop, new_triplets_antitop, weights_antitop = ec.getTriplets_pp(scale, jet_antitop.constituents(), n=1, max_zeta=1.0, max_delta_zeta=None, delta_legs=None, shortest_side=None, log=args.log)
+            if args.newHist:
+                values = new_triplets_antitop
+            else:
+                values = triplets_antitop
             # Fill jet hists
             for bin in ptbins:
                 minpt, maxpt, binning = ptbins[bin]
@@ -296,22 +300,13 @@ while reader.run( ):
                     h_Nconstituents[bin].Fill(len(jet_antitop.constituents()))
                     h_pttop[bin].Fill(antitop.pt())
                     h_ptW[bin].Fill(wminus.pt())
-                    if args.newHist:
-                        if not sawEvents[bin]:
-                            h_correlator1[bin],       (xedges, yedges, zedges) = np.histogramdd( new_triplets_antitop, binning, weights=weights_antitop )
-                            h_correlator2[bin],       (xedges, yedges, zedges) = np.histogramdd( new_triplets_antitop, binning, weights=weights_antitop**2 )
-                            sawEvents[bin] = True
-                        else:
-                            h_correlator1[bin]       += np.histogramdd( new_triplets_antitop, binning, weights=weights_antitop )   [0]
-                            h_correlator2[bin]       += np.histogramdd( new_triplets_antitop, binning, weights=weights_antitop**2 )[0]
+                    if not sawEvents[bin]:
+                        h_correlator1[bin],       (xedges, yedges, zedges) = np.histogramdd( values, binning, weights=weights_antitop )
+                        h_correlator2[bin],       (xedges, yedges, zedges) = np.histogramdd( values, binning, weights=weights_antitop**2 )
+                        sawEvents[bin] = True
                     else:
-                        if not sawEvents[bin]:
-                            h_correlator1[bin],       (xedges, yedges, zedges) = np.histogramdd( triplets_antitop, binning, weights=weights_antitop )
-                            h_correlator2[bin],       (xedges, yedges, zedges) = np.histogramdd( triplets_antitop, binning, weights=weights_antitop**2 )
-                            sawEvents[bin] = True
-                        else:
-                            h_correlator1[bin]       += np.histogramdd( triplets_antitop, binning, weights=weights_antitop )   [0]
-                            h_correlator2[bin]       += np.histogramdd( triplets_antitop, binning, weights=weights_antitop**2 )[0]
+                        h_correlator1[bin]       += np.histogramdd( values, binning, weights=weights_antitop )   [0]
+                        h_correlator2[bin]       += np.histogramdd( values, binning, weights=weights_antitop**2 )[0]
 
     timediffs.append(time.time() - t_start)
 
