@@ -94,7 +94,7 @@ process.generator = cms.EDFilter("Pythia8GeneratorFilter",
             #'Random:setSeed = on',
             #'Random:seed = on',
             'Beams:idA = 2212',
-            'Beams:idB = -2212',
+            'Beams:idB = 2212',
 
             'Top:gg2ttbar = on',
             'Top:qqbar2ttbar = on',

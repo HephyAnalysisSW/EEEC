@@ -42,7 +42,7 @@ def rescaleWplot(hist):
         hist_scale.SetBinError(binX, error*sf)
     return hist_scale
 
-def getTopPeak(h_3D, asymm_max, short_min):
+def getTopPeak(h_3D, asymm_max, short_min, normToWidth=True):
     random_str = ''.join(random.choice(string.ascii_letters) for i in range(10))
     bins_1D = extractBinning(h_3D, "X")
     h_1D = ROOT.TH1D("h_top_"+random_str, "h_top", len(bins_1D)-1, arr.array('d', bins_1D))
@@ -60,12 +60,16 @@ def getTopPeak(h_3D, asymm_max, short_min):
                     if h_3D.GetZaxis().GetBinLowEdge(binZ) > short_min:
                         content += h_3D.GetBinContent(binX, binY, binZ)
                         error2  += pow(h_3D.GetBinError(binX, binY, binZ), 2)
-        h_1D.SetBinContent(binX, content/widthX)
-        h_1D.SetBinError(binX, np.sqrt(error2)/widthX)
+        if normToWidth:
+            h_1D.SetBinContent(binX, content/widthX)
+            h_1D.SetBinError(binX, np.sqrt(error2)/widthX)
+        else:
+            h_1D.SetBinContent(binX, content)
+            h_1D.SetBinError(binX, np.sqrt(error2))
     return h_1D
 
 
-def getWPeak(h_3D, h_twopoint, scale=True):
+def getWPeak(h_3D, h_twopoint, scale=True, normToWidth=True):
     bins_1D = extractBinning(h_3D, "X")
     h_1D = ROOT.TH1D("h_W", "h_W", len(bins_1D)-1, arr.array('d', bins_1D))
 
@@ -80,11 +84,16 @@ def getWPeak(h_3D, h_twopoint, scale=True):
                 binZ = k+1
                 content += h_3D.GetBinContent(binX, binY, binZ)
                 error2  += pow(h_3D.GetBinError(binX, binY, binZ), 2)
-        h_1D.SetBinContent(binX, content/widthX)
-        h_1D.SetBinError(binX, np.sqrt(error2)/widthX)
-        h_twopoint.SetBinContent(binX, h_twopoint.GetBinContent(binX)/widthX)
-        h_twopoint.SetBinError(binX, h_twopoint.GetBinError(binX)/widthX)
-    h_1D.Divide(h_twopoint)
+        if normToWidth:
+            h_1D.SetBinContent(binX, content/widthX)
+            h_1D.SetBinError(binX, np.sqrt(error2)/widthX)
+            h_twopoint.SetBinContent(binX, h_twopoint.GetBinContent(binX)/widthX)
+            h_twopoint.SetBinError(binX, h_twopoint.GetBinError(binX)/widthX)
+        else:
+            h_1D.SetBinContent(binX, content)
+            h_1D.SetBinError(binX, np.sqrt(error2))
+    if h_twopoint is not None:
+        h_1D.Divide(h_twopoint)
     if scale:
         h_1D = rescaleWplot(h_1D)
     return h_1D

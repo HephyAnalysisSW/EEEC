@@ -84,7 +84,8 @@ process.load("Configuration.StandardSequences.SimulationRandomNumberGeneratorSee
 process.RandomNumberGeneratorService.generator = process.RandomNumberGeneratorService.generator.clone()
 
 import random
-process.RandomNumberGeneratorService.generator.initialSeed = cms.untracked.uint32(random.randint(0,10**9))
+# process.RandomNumberGeneratorService.generator.initialSeed = cms.untracked.uint32(random.randint(0,10**9))
+process.RandomNumberGeneratorService.generator.initialSeed = 195
 
 process.generator = cms.EDFilter("Pythia8GeneratorFilter",
 #process.generator = cms.EDFilter("Pythia8HadronizerFilter",

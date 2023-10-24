@@ -34,6 +34,7 @@ argParser.add_argument('--input',              action='store',      help='input 
 argParser.add_argument('--overwrite',          action='store',      nargs='?', choices = ['none', 'all', 'target'], default = 'none', help='Overwrite?')#, default = True)
 argParser.add_argument('--output',             action='store',      default='output')
 argParser.add_argument('--jetR',               action='store',      default=1.5)
+argParser.add_argument('--newHist',            action='store_true', default = False)
 
 args = argParser.parse_args()
 
@@ -94,6 +95,33 @@ binsA = np.linspace(min_zeta, interm_zeta, NbinsA+1)
 binsB = np.linspace(interm_zeta, max_zeta, NbinsB+1)
 binsB = np.delete(binsB, 0) # remove first number because it is already part of "binsA"
 binning = np.array([ np.append(binsA, binsB) for i in range(3)], dtype='d')
+
+# New 3D histogram has the axes:
+# X = (zeta_medium+zeta_large)/2 with 100 bins from 0 to 0.15 and 100 bins from 0.15 to 0.6
+# Y = zeta_large-zeta_medium with 20 bins between 0 and 0.2 and one overflow
+# Z = zeta_short with 90 bins between 0 and 0.45 + divide first bin into 10 bins
+
+binsX_A = np.linspace(0, 0.05, 100+1)
+binsX_B = np.linspace(0.05, 0.25, 100+1)
+binsX_B = np.delete(binsX_B, 0) # remove first number because it is already part of "binsA"
+binningX = np.append(binsX_A, binsX_B)
+
+binsY_A = np.linspace(0, 0.08, 20+1)
+binsY_B = np.linspace(0.08, 0.25, 1+1) # one overflow
+binsY_B = np.delete(binsY_B, 0) # remove first number because it is already part of "binsA"
+binningY = np.append(binsY_A, binsY_B)
+
+binsZ_A = np.linspace(0, 0.0015, 50+1)
+binsZ_B = np.linspace(0.0015, 0.15, 99+1)
+binsZ_B = np.delete(binsZ_B, 0) # remove first number because it is already part of "binsA"
+binningZ = np.append(binsZ_A, binsZ_B)
+
+binning_new =  [binningX, binningY, binningZ]
+
+if args.newHist:
+    binning = binning_new
+
+
 
 h_mindR_top_jet = ROOT.TH1D("mindR_top_jet", "min[#Delta R(top, jet)]", 10, 0, 3)
 h_mjet = ROOT.TH1F("m_jet", "m_{jet}", 30, 0, 300)
@@ -189,10 +217,16 @@ while reader.run( ):
 
     # top quark
     triplets_top = np.empty((0,3))
+    new_triplets_top = np.empty((0,3))
+    values_top = np.empty((0,3))
     weights_top  = np.empty((0))
     if jet_top is not None:
         # Get triplets
-        triplets_top, weights_top = ec.getTriplets(scale, jet_top.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
+        triplets_top, new_triplets_top, weights_top = ec.getTriplets(scale, jet_top.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
+        if args.newHist:
+            values_top = new_triplets_top
+        else:
+            values_top = triplets_top
         # Fill jet hists
         h_mindR_top_jet.Fill(dRmin_top)
         h_mjet.Fill(jet_top.m())
@@ -202,10 +236,16 @@ while reader.run( ):
 
     # anti top quark
     triplets_antitop = np.empty((0,3))
+    new_triplets_antitop = np.empty((0,3))
+    values_antitop = np.empty((0,3))
     weights_antitop  = np.empty((0))
     if jet_antitop is not None:
         # Get triplets
-        triplets_antitop, weights_antitop = ec.getTriplets(scale, jet_antitop.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
+        triplets_antitop, new_triplets_antitop, weights_antitop = ec.getTriplets(scale, jet_antitop.constituents(), n=1, max_zeta=max_zeta, max_delta_zeta=None, delta_legs=None, shortest_side=None)
+        if args.newHist:
+            values_antitop = new_triplets_antitop
+        else:
+            values_antitop = triplets_antitop
         # Fill jet hists
         h_mindR_top_jet.Fill(dRmin_antitop)
         h_mjet.Fill(jet_antitop.m())
@@ -216,16 +256,14 @@ while reader.run( ):
     if jet_top is not None and jet_antitop is not None:
         h_dPhi.Fill(abs(jet_top.phi()-jet_antitop.phi()))
 
-    if len(triplets_top)+len(triplets_antitop)>0:
+    if len(values_top)+len(values_antitop)>0:
         if first:
-            h_correlator1,       (xedges, yedges, zedges) = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))
-            h_correlator2,       (xedges, yedges, zedges) = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)
-            # h_correlator2_sumw2, (xedges, yedges, zedges) = np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**4)
+            h_correlator1,       (xedges, yedges, zedges) = np.histogramdd( np.concatenate((values_top, values_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))
+            h_correlator2,       (xedges, yedges, zedges) = np.histogramdd( np.concatenate((values_top, values_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)
             first = False
         else:
-            h_correlator1       += np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))   [0]
-            h_correlator2       += np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)[0]
-            # h_correlator2_sumw2 += np.histogramdd( np.concatenate((triplets_top, triplets_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**4)[0]
+            h_correlator1       += np.histogramdd( np.concatenate((values_top, values_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop)))   [0]
+            h_correlator2       += np.histogramdd( np.concatenate((values_top, values_antitop)), binning, weights=np.concatenate((weights_top, weights_antitop))**2)[0]
 
     timediffs.append(time.time() - t_start)
 

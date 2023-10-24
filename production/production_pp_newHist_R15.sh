@@ -27,8 +27,7 @@ export HADSWITCH=$8
 
 # Run the cmsRun
 #ipython -i $PWD/production.py || exit $? ;
-cmsRun -e $PWD/production_pp_herwig.py || exit $? ;
-rm /users/dennis.schwarz/CMSSW_10_2_15_patch2/src/EEEC/production/InterfaceMatchboxTest_${POSTFIX}*
-python genPostProcessing_pp.py --isHERWIG --newHist --jetR 1.2 --input $PRODUCTION_TMP_FILE --output $OUTPUTDIR/output_${COM}_${MT}_${MW}_HARDPT${PTMIN}to${PTMAX}_MPI${MPISWITCH}_HAD${HADSWITCH}_R12_HERWIG_NEWHIST_$POSTFIX
+cmsRun -e $PWD/production_pp.py || exit $? ;
+python genPostProcessing_pp.py --newHist --jetR 1.5 --input $PRODUCTION_TMP_FILE --output $OUTPUTDIR/output_${COM}_${MT}_${MW}_HARDPT${PTMIN}to${PTMAX}_MPI${MPISWITCH}_HAD${HADSWITCH}_R15_NEWHIST_$POSTFIX
 
 rm $PRODUCTION_TMP_FILE

@@ -25,4 +25,4 @@ export HADSWITCH=$5
 cmsRun -e $PWD/production.py || exit $? ;
 python genPostProcessing.py --input $PRODUCTION_TMP_FILE --output $OUTPUTDIR/output_${COM}_${MT}_${MW}_HAD${HADSWITCH}_$POSTFIX
 
-rm $PRODUCTION_TMP_FILE 
+rm $PRODUCTION_TMP_FILE

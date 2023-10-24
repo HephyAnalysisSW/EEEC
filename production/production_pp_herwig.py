@@ -41,6 +41,10 @@ HADSWITCH = str(os.environ["HADSWITCH"])
 MPISWITCH = str(os.environ["MPISWITCH"])
 PTMIN = float(os.environ["PTMIN"])
 PTMAX = float(os.environ["PTMAX"])
+POSTFIX = str(os.environ["POSTFIX"])
+
+had_string = '' if 'on' in HADSWITCH else 'set EventHandler:HadronizationHandler NULL'
+mpi_string = '' if 'on' in MPISWITCH else 'set EventHandler:CascadeHandler:MPIHandler NULL'
 
 if os.environ.has_key('PRODUCTION_TMP_FILE'):
     PRODUCTION_TMP_FILE = os.environ['PRODUCTION_TMP_FILE']
@@ -99,7 +103,27 @@ process.generator = cms.EDFilter("Herwig7GeneratorFilter",
         'read snippets/PPCollider.in',
         'cd /Herwig/MatrixElements/',
         'insert SubProcess:MatrixElements[0] MEHeavyQuark',
+        'do /Herwig/Particles/t:SelectDecayModes t->b,bbar,c; t->b,u,dbar; t->b,c,dbar; t->b,sbar,u; t->b,c,sbar;',
         'cd /',
+        'insert /Herwig/Cuts/Cuts:OneCuts 0 /Herwig/Cuts/TopQuarkCut',
+        'set /Herwig/Cuts/TopQuarkCut:PtMin %s*GeV'%PTMIN,
+        'set /Herwig/Cuts/TopQuarkCut:PtMax %s*GeV'%PTMAX,
+        'set /Herwig/EventHandlers/Luminosity:Energy %s'%COM,
+        'set /Herwig/Particles/t:NominalMass %s*GeV'%MT,
+        'set /Herwig/Particles/t:HardProcessMass %s*GeV'%MT,
+        'set /Herwig/Particles/tbar:NominalMass %s*GeV'%MT,
+        'set /Herwig/Particles/tbar:HardProcessMass %s*GeV'%MT,
+        'set /Herwig/Particles/W+:NominalMass %s*GeV'%MW,
+        'set /Herwig/Particles/W+:HardProcessMass %s*GeV'%MW,
+        'set /Herwig/Particles/W-:NominalMass %s*GeV'%MW,
+        'set /Herwig/Particles/W-:HardProcessMass %s*GeV'%MW,
+        'do /Herwig/Particles/t:PrintDecayModes',
+        'do /Herwig/Particles/tbar:PrintDecayModes',
+        'cd /Herwig/EventHandlers',
+        had_string,
+        mpi_string,
+        'cd /',
+
     ),
     parameterSets = cms.vstring('productionParameters',
                                 'herwig7CH3PDF',
@@ -114,7 +138,7 @@ process.generator = cms.EDFilter("Herwig7GeneratorFilter",
     filterEfficiency = cms.untracked.double(1.0),
     generatorModule = cms.string('/Herwig/Generators/EventGenerator'),
     repository = cms.string('${HERWIGPATH}/HerwigDefaults.rpo'),
-    run = cms.string('InterfaceMatchboxTest'),
+    run = cms.string('InterfaceMatchboxTest_'+POSTFIX),
     runModeList = cms.untracked.string("read,run"),
 )
 
