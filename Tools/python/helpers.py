@@ -35,17 +35,44 @@ def make_TH1D( h, ignore_binning = False):
         histo.SetBinContent(i_v+1, v)
     return histo
 
-def make_TH3D(h):
+def make_TH3D(vals, binning, sumw2=None):
     # remove infs from thresholds
-    vals, ( thrs1, thrs2, thrs3) = h
+    thrs1, thrs2, thrs3 = binning
 
-    histo = ROOT.TH3D("h","h",len(thrs1)-1,array('d', thrs1), len(thrs2)-1,array('d', thrs2), len(thrs3)-1,array('d', thrs3))
+    histo = ROOT.TH3D("h","h",len(thrs1)-1,array('d', thrs1), len(thrs2)-1, array('d', thrs2), len(thrs3)-1, array('d', thrs3))
 
     for i_bx in range(1, histo.GetNbinsX()+1):
         for i_by in range(1, histo.GetNbinsY()+1):
             for i_bz in range(1, histo.GetNbinsZ()+1):
-    
+
                 histo.SetBinContent(i_bx, i_by, i_bz, vals[i_bx-1][i_by-1][i_bz-1])
+                if sumw2 is not None:
+                    histo.SetBinError(i_bx, i_by, i_bz, sqrt(sumw2[i_bx-1][i_by-1][i_bz-1]))
+    return histo
+
+def make_TH2D(vals, binning, sumw2=None):
+    # remove infs from thresholds
+    thrs1, thrs2 = binning
+
+    histo = ROOT.TH2D("h","h",len(thrs1)-1, array('d', thrs1), len(thrs2)-1, array('d', thrs2))
+
+    for i_bx in range(1, histo.GetNbinsX()+1):
+        for i_by in range(1, histo.GetNbinsY()+1):
+            histo.SetBinContent(i_bx, i_by, vals[i_bx-1][i_by-1])
+            if sumw2 is not None:
+                histo.SetBinError(i_bx, i_by, sqrt(sumw2[i_bx-1][i_by-1]))
+    return histo
+
+def make_TH1D(vals, binning, sumw2=None):
+    # remove infs from thresholds
+    thrs1 = binning[0]
+
+    histo = ROOT.TH1D("h","h", len(thrs1)-1, array('d', thrs1))
+
+    for i_bx in range(1, histo.GetNbinsX()+1):
+        histo.SetBinContent(i_bx, vals[i_bx-1])
+        if sumw2 is not None:
+            histo.SetBinError(i_bx, sqrt(sumw2[i_bx-1]))
     return histo
 
 def deltaPhi(phi1, phi2):
@@ -61,7 +88,7 @@ def deltaR2(l1, l2):
 
 def deltaR(l1, l2):
     return sqrt(deltaR2(l1,l2))
-    
+
 def deltaRGenparts(g1, g2):
     dphi = deltaPhi(g1.phi(), g2.phi())
     deta = g1.eta() - g2.eta()

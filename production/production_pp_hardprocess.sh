@@ -18,11 +18,14 @@ export MAXEVENTS=$1
 export COM=$2
 export MT=$3
 export MW=$4
-export HADSWITCH=$5
+export PTMIN=$5
+export PTMAX=$6
+
+
 
 # Run the cmsRun
 #ipython -i $PWD/production.py || exit $? ;
-cmsRun -e $PWD/production.py || exit $? ;
-python genPostProcessing.py --input $PRODUCTION_TMP_FILE --output $OUTPUTDIR/output_${COM}_${MT}_${MW}_HAD${HADSWITCH}_$POSTFIX
+cmsRun -e $PWD/production_pp_hardprocess.py || exit $? ;
+python genPostProcessing_pp.py --input $PRODUCTION_TMP_FILE --output $OUTPUTDIR/output_${COM}_${MT}_${MW}_HARDPT${PTMIN}to${PTMAX}_HardProcess_$POSTFIX
 
 rm $PRODUCTION_TMP_FILE

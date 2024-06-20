@@ -7,6 +7,10 @@ import FWCore.ParameterSet.Config as cms
 
 from Configuration.StandardSequences.Eras import eras
 
+from Configuration.Generator.Herwig7Settings.Herwig7CH3TuneSettings_cfi import herwig7CH3SettingsBlock
+from Configuration.Generator.Herwig7Settings.Herwig7StableParticlesForDetector_cfi import *
+# from Configuration.Generator.Herwig7Settings.Herwig7_7p1SettingsFor7p2_cfi import *
+
 process = cms.Process('GEN',eras.Run2_2018)
 
 # import of standard configurations
@@ -29,17 +33,25 @@ process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(maxEvents)
 )
 
+
 MT  = float(os.environ["MT"])
 MW  = float(os.environ["MW"])
 COM = float(os.environ["COM"])
 HADSWITCH = str(os.environ["HADSWITCH"])
+MPISWITCH = str(os.environ["MPISWITCH"])
+PTMIN = float(os.environ["PTMIN"])
+PTMAX = float(os.environ["PTMAX"])
+POSTFIX = str(os.environ["POSTFIX"])
+
+had_string = '' if 'on' in HADSWITCH else 'set EventHandler:HadronizationHandler NULL'
+mpi_string = '' if 'on' in MPISWITCH else 'set EventHandler:CascadeHandler:MPIHandler NULL'
 
 if os.environ.has_key('PRODUCTION_TMP_FILE'):
     PRODUCTION_TMP_FILE = os.environ['PRODUCTION_TMP_FILE']
 else:
     PRODUCTION_TMP_FILE = "PRODUCTION_TMP_FILE.root"
 
-print("Will process %i events for c.o.m %3.2f, mT = %3.2f, mW=%3.2f, Hadronization: %s"%(maxEvents, COM, MT, MW, HADSWITCH))
+print("Will process %i pp events for c.o.m %3.2f, mT = %3.2f, mW=%3.2f, %3.2f < pT < %3.2f, MPI: %s, Hadronization: %s"%(maxEvents, COM, MT, MW, PTMIN, PTMAX, MPISWITCH, HADSWITCH))
 # Input source
 process.source = cms.Source("EmptySource")
 
@@ -82,42 +94,53 @@ process.RandomNumberGeneratorService.generator = process.RandomNumberGeneratorSe
 import random
 process.RandomNumberGeneratorService.generator.initialSeed = cms.untracked.uint32(random.randint(0,10**9))
 
-process.generator = cms.EDFilter("Pythia8GeneratorFilter",
-#process.generator = cms.EDFilter("Pythia8HadronizerFilter",
-    PythiaParameters = cms.PSet(
-        parameterSets = cms.vstring(
-            'processParameters'
-        ),
-        processParameters = cms.vstring(
-            #'Random:setSeed = on',
-            #'Random:seed = on',
-            'Beams:idA = 11',
-            'Beams:idB = -11',
-            'PDF:lepton = off',
-            'Top:ffbar2ttbar(s:gmZ) = on',
+#############################################
+process.generator = cms.EDFilter("Herwig7GeneratorFilter",
+    herwig7CH3SettingsBlock,
+    herwig7StableParticlesForDetectorBlock,
+    # herwig7p1SettingsFor7p2Block,
+    productionParameters = cms.vstring(
+        'read snippets/PPCollider.in',
+        'cd /Herwig/MatrixElements/',
+        'insert SubProcess:MatrixElements[0] MEHeavyQuark',
+        'do /Herwig/Particles/t:SelectDecayModes t->b,bbar,c; t->b,u,dbar; t->b,c,dbar; t->b,sbar,u; t->b,c,sbar;',
+        'cd /',
+        'insert /Herwig/Cuts/Cuts:OneCuts 0 /Herwig/Cuts/TopQuarkCut',
+        'set /Herwig/Cuts/TopQuarkCut:PtMin %s*GeV'%PTMIN,
+        'set /Herwig/Cuts/TopQuarkCut:PtMax %s*GeV'%PTMAX,
+        'set /Herwig/EventHandlers/Luminosity:Energy %s'%COM,
+        'set /Herwig/Particles/t:NominalMass %s*GeV'%MT,
+        'set /Herwig/Particles/t:HardProcessMass %s*GeV'%MT,
+        'set /Herwig/Particles/tbar:NominalMass %s*GeV'%MT,
+        'set /Herwig/Particles/tbar:HardProcessMass %s*GeV'%MT,
+        'set /Herwig/Particles/W+:NominalMass %s*GeV'%MW,
+        'set /Herwig/Particles/W+:HardProcessMass %s*GeV'%MW,
+        'set /Herwig/Particles/W-:NominalMass %s*GeV'%MW,
+        'set /Herwig/Particles/W-:HardProcessMass %s*GeV'%MW,
+        'do /Herwig/Particles/t:PrintDecayModes',
+        'do /Herwig/Particles/tbar:PrintDecayModes',
+        'cd /Herwig/EventHandlers',
+        had_string,
+        mpi_string,
+        'cd /',
 
-            ### only hard process
-            #'ProcessLevel:all = on',# parton level
-            #'PartonLevel:all = off',#parton level
-
-            ### hadronization
-            'HadronLevel:Hadronize = %s'%HADSWITCH,
-
-            '6:m0 = %f'%MT,
-            '6:mWidth = 1.43',
-            '24:m0 = %f'%MW,
-            '24:onMode = off',
-            '24:onIfAny = 1 2 3 4 5',
-        ),
     ),
-    comEnergy = cms.double(COM),
-    ElectronPositronInitialState = cms.untracked.bool(True),
+    parameterSets = cms.vstring('productionParameters',
+                                'herwig7CH3PDF',
+                                'herwig7CH3AlphaS',
+                                'herwig7CH3MPISettings',
+                                'herwig7StableParticlesForDetector'),
+                                # 'hw_7p1SettingsFor7p2'),
+    configFiles = cms.vstring(),
+    crossSection = cms.untracked.double(1363000000),
+    dataLocation = cms.string('${HERWIGPATH:-6}'),
+    eventHandlers = cms.string('/Herwig/EventHandlers'),
     filterEfficiency = cms.untracked.double(1.0),
-    maxEventsToPrint = cms.untracked.int32(1),
-    pythiaHepMCVerbosity = cms.untracked.bool(False),
-    pythiaPylistVerbosity = cms.untracked.int32(1)
+    generatorModule = cms.string('/Herwig/Generators/EventGenerator'),
+    repository = cms.string('${HERWIGPATH}/HerwigDefaults.rpo'),
+    run = cms.string('InterfaceMatchboxTest_'+POSTFIX),
+    runModeList = cms.untracked.string("read,run"),
 )
-
 
 # Path and EndPath definitions
 process.generation_step = cms.Path(process.pgen)

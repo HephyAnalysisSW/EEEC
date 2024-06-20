@@ -29,17 +29,21 @@ process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(maxEvents)
 )
 
+
 MT  = float(os.environ["MT"])
 MW  = float(os.environ["MW"])
 COM = float(os.environ["COM"])
 HADSWITCH = str(os.environ["HADSWITCH"])
+MPISWITCH = str(os.environ["MPISWITCH"])
+PTMIN = float(os.environ["PTMIN"])
+PTMAX = float(os.environ["PTMAX"])
 
 if os.environ.has_key('PRODUCTION_TMP_FILE'):
     PRODUCTION_TMP_FILE = os.environ['PRODUCTION_TMP_FILE']
 else:
     PRODUCTION_TMP_FILE = "PRODUCTION_TMP_FILE.root"
 
-print("Will process %i events for c.o.m %3.2f, mT = %3.2f, mW=%3.2f, Hadronization: %s"%(maxEvents, COM, MT, MW, HADSWITCH))
+print("Will process %i pp events for c.o.m %3.2f, mT = %3.2f, mW=%3.2f, %3.2f < pT < %3.2f, MPI: %s, Hadronization: %s"%(maxEvents, COM, MT, MW, PTMIN, PTMAX, MPISWITCH, HADSWITCH))
 # Input source
 process.source = cms.Source("EmptySource")
 
@@ -80,7 +84,8 @@ process.load("Configuration.StandardSequences.SimulationRandomNumberGeneratorSee
 process.RandomNumberGeneratorService.generator = process.RandomNumberGeneratorService.generator.clone()
 
 import random
-process.RandomNumberGeneratorService.generator.initialSeed = cms.untracked.uint32(random.randint(0,10**9))
+# process.RandomNumberGeneratorService.generator.initialSeed = cms.untracked.uint32(random.randint(0,10**9))
+process.RandomNumberGeneratorService.generator.initialSeed = 195
 
 process.generator = cms.EDFilter("Pythia8GeneratorFilter",
 #process.generator = cms.EDFilter("Pythia8HadronizerFilter",
@@ -91,10 +96,14 @@ process.generator = cms.EDFilter("Pythia8GeneratorFilter",
         processParameters = cms.vstring(
             #'Random:setSeed = on',
             #'Random:seed = on',
-            'Beams:idA = 11',
-            'Beams:idB = -11',
-            'PDF:lepton = off',
-            'Top:ffbar2ttbar(s:gmZ) = on',
+            'Beams:idA = 2212',
+            'Beams:idB = 2212',
+
+            'Top:gg2ttbar = on',
+            'Top:qqbar2ttbar = on',
+
+            ### ! Turn off MPI
+            'PartonLevel:MPI =  %s'%MPISWITCH,
 
             ### only hard process
             #'ProcessLevel:all = on',# parton level
@@ -102,6 +111,10 @@ process.generator = cms.EDFilter("Pythia8GeneratorFilter",
 
             ### hadronization
             'HadronLevel:Hadronize = %s'%HADSWITCH,
+
+            ### Set hard pT ranges:
+            'PhaseSpace:pTHatMin = %f'%PTMIN,
+            'PhaseSpace:pTHatMax = %f'%PTMAX,
 
             '6:m0 = %f'%MT,
             '6:mWidth = 1.43',
@@ -111,7 +124,6 @@ process.generator = cms.EDFilter("Pythia8GeneratorFilter",
         ),
     ),
     comEnergy = cms.double(COM),
-    ElectronPositronInitialState = cms.untracked.bool(True),
     filterEfficiency = cms.untracked.double(1.0),
     maxEventsToPrint = cms.untracked.int32(1),
     pythiaHepMCVerbosity = cms.untracked.bool(False),
