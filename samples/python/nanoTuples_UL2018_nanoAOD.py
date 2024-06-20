@@ -6,13 +6,13 @@ import ROOT
 import logging
 logger = logging.getLogger(__name__)
 
-from MTopCorrelations.samples.color import color
+from EEEC.samples.color import color
 
 # Data directory
 try:
     directory_ = sys.modules['__main__'].directory_
 except:
-    import MTopCorrelations.samples.UL_nanoAODv9_locations as locations
+    import EEEC.samples.UL_nanoAODv9_locations as locations
     directory_ = locations.mc_UL2018
 
 logger.info("Loading MC samples from directory %s", directory_)

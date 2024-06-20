@@ -18,6 +18,7 @@ export MAXEVENTS=$1
 export COM=$2
 export MT=$3
 export MW=$4
+export HADSWITCH=$5
 
 # Run the cmsRun
 #ipython -i $PWD/production.py || exit $? ;
