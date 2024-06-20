@@ -1,4 +1,4 @@
-from    MTopCorrelations.Tools.helpers import mZ, getVarValue, getObjDict, deltaR
+from    EEEC.Tools.helpers import mZ, getVarValue, getObjDict, deltaR
 
 # standard imports
 from    math import *

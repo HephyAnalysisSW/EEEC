@@ -63,48 +63,7 @@ mc = [UL2018.TTbar]
 lumi_scale = 60
 
 ################################################################################
-# Correlator Hist
-# hist = ROOT.TH1F("Correlator", "dR", 10, 0, 3)
-
-################################################################################
-# Text on the plots
-tex = ROOT.TLatex()
-tex.SetNDC()
-tex.SetTextSize(0.04)
-tex.SetTextAlign(11) # align right
-
-################################################################################
 # Functions needed specifically for this analysis routine
-
-def drawObjects( plotData, lumi_scale ):
-    lines = [
-      (0.15, 0.95, 'CMS Preliminary' if plotData else 'CMS Simulation'),
-      (0.45, 0.95, 'L=%3.1f fb{}^{-1} (13 TeV) '% ( lumi_scale ) ) if plotData else (0.45, 0.95, 'L=%3.1f fb{}^{-1} (13 TeV)' % lumi_scale)
-    ]
-    return [tex.DrawLatex(*l) for l in lines]
-
-def drawPlots(plots):
-    for log in [False, True]:
-        plot_directory_ = os.path.join(plot_directory, 'analysisPlots', args.plot_directory, args.era, args.selection, ("log" if log else "lin"), )
-        for plot in plots:
-            if not max(l.GetMaximum() for l in sum(plot.histos,[])): continue # Empty plot
-
-            _drawObjects = []
-            n_stacks=len(plot.histos)
-            plotData=False
-            if isinstance( plot, Plot):
-                plotting.draw(plot,
-                  plot_directory = plot_directory_,
-                  ratio =  None,
-                  logX = False, logY = log, sorting = True,
-                  yRange = (0.03, "auto") if log else (0.001, "auto"),
-                  scaling = {},
-                  legend = ( (0.18,0.88-0.03*sum(map(len, plot.histos)),0.9,0.88), 2),
-                  drawObjects = drawObjects( plotData , lumi_scale ) + _drawObjects,
-                  copyIndexPHP = True, extensions = ["png", "pdf", "root"],
-                )
-
-
 def getHadronicTop(event):
     # First find the two tops
     foundTop = False
@@ -154,6 +113,7 @@ sequence       = []
 
 
 def getConstituents( event, sample ):
+    passSel = False
     genParts = []
     pfParts = []
     hadTop = getHadronicTop(event)
@@ -172,6 +132,7 @@ def getConstituents( event, sample ):
                     pfJet.SetPtEtaPhiM(event.PFJetAK8_pt[idx_pfJet],event.PFJetAK8_eta[idx_pfJet],event.PFJetAK8_phi[idx_pfJet],event.PFJetAK8_mass[idx_pfJet])
                     if pfJet.Pt() > 400:
                         scale_pf = pfJet.Pt()
+                        passSel = True
                         for iGen in range(event.nGenJetAK8_cons):
                             if event.GenJetAK8_cons_jetIndex[iGen] != idx_genJet:
                                 continue
@@ -229,15 +190,16 @@ def getConstituents( event, sample ):
     event.nGenAll = len(genParts) if len(genParts) > 0 else float('nan')
     event.nGenMatched = len(genParts_matched) if len(genParts) > 0 else float('nan')
     event.matchingEffi = float(len(genParts_matched))/float(len(genParts)) if Nall > 0 else float('nan')
+    event.passSel = passSel
 
+
+    event.zeta_gen = np.zeros( ( len([]), 3), dtype='f' )
+    event.weight_gen = np.zeros( ( len([]), 1), dtype='f' )
+    event.zeta_rec = np.zeros( ( len([]), 3), dtype='f' )
+    event.weight_rec = np.zeros( ( len([]), 1), dtype='f' )
     if len(genParts_matched) > 0:
-        zeta_gen, transformed_values_gen, long_gen, medium_gen, weight_gen = getTriplets_pp_TLorentz(scale_gen, genParts_matched, n=2, max_zeta=None, max_delta_zeta=None, delta_legs=None, shortest_side=None, log=False)
-        zeta_pf,  transformed_values_pf,  long_pf,  medium_pf,  weight_pf  = getTriplets_pp_TLorentz(scale_pf, pfParts_matched, n=2, max_zeta=None, max_delta_zeta=None, delta_legs=None, shortest_side=None, log=False)
-
-
-
-
-
+        _, event.zeta_gen, _, _, event.weight_gen = getTriplets_pp_TLorentz(scale_gen, genParts_matched, n=1, max_zeta=None, max_delta_zeta=None, delta_legs=None, shortest_side=None, log=False)
+        _, event.zeta_rec, _, _, event.weight_rec = getTriplets_pp_TLorentz(scale_pf, pfParts_matched, n=1, max_zeta=None, max_delta_zeta=None, delta_legs=None, shortest_side=None, log=False)
 
 sequence.append( getConstituents )
 
@@ -256,77 +218,48 @@ read_variables = [
     "PFJetAK8[pt/F,eta/F,phi/F,mass/F]",
     "nPFJetAK8_cons/I",
     VectorTreeVariable.fromString( "PFJetAK8_cons[pt/F,eta/F,phi/F,mass/F,pdgId/I,jetIndex/I]", nMax=1000),
-
 ]
 
 ################################################################################
-# Set up plotting
-# weight_ = lambda event, sample: event.weight if sample.isData else event.weight*lumi_scale/1000.
-# weight_ = lambda event, sample: 1. if sample.isData else lumi_scale/1000.
-weight_ = lambda event, sample: 1.
+# Histograms
+histograms = {
+    "Weight_gen": ROOT.TH1F("Weight_gen", "Weight_gen", 100, 0, 0.04),
+    "Weight_rec": ROOT.TH1F("Weight_rec", "Weight_rec", 100, 0, 0.04),
+    "Weight_matrix": ROOT.TH2F("Weight_matrix", "Weight_matrix", 100, 0, 0.04, 100, 0, 0.04),
+    "Zeta_gen": ROOT.TH1F("Zeta_gen", "Zeta_gen", 100, 0, 3.0),
+    "Zeta_rec": ROOT.TH1F("Zeta_rec", "Zeta_rec", 100, 0, 3.0),
+    "ZetaNoWeight_gen": ROOT.TH1F("ZetaNoWeight_gen", "ZetaNoWeight_gen", 100, 0, 3.0),
+    "ZetaNoWeight_rec": ROOT.TH1F("ZetaNoWeight_rec", "ZetaNoWeight_rec", 100, 0, 3.0),
+    "ZetaNoWeight_matrix": ROOT.TH2F("ZetaNoWeight_matrix", "ZetaNoWeight_matrix", 100, 0, 3.0, 100, 0, 3.0),
+    "MatchingEfficiency": ROOT.TH1F("MatchingEfficiency", "MatchingEfficiency", 50, 0, 1.0),
+}
 
+
+
+outdir = "/groups/hephy/cms/dennis.schwarz/www/EEEC/results/"
 for sample in mc:
-    sample.style = styles.fillStyle(sample.color)
+    hist = histograms.copy()
+    r = sample.treeReader( variables = read_variables, sequence = sequence, selectionString = cutInterpreter.cutString(args.selection))
+    r.start()
+    while r.run():
+        event = r.event
+        if event.passSel:
+            hist["MatchingEfficiency"].Fill(event.matchingEffi)
+            for i in range(len(event.zeta_gen)):
+                hist["Weight_gen"].Fill(event.weight_gen[i])
+                hist["Weight_rec"].Fill(event.weight_rec[i])
+                hist["Weight_matrix"].Fill(event.weight_gen[i], event.weight_rec[i])
+                hist["ZetaNoWeight_gen"].Fill(event.zeta_gen[i][0])
+                hist["ZetaNoWeight_rec"].Fill(event.zeta_rec[i][0])
+                hist["ZetaNoWeight_matrix"].Fill(event.zeta_gen[i][0], event.zeta_rec[i][0])
+                hist["Zeta_gen"].Fill(event.zeta_gen[i][0], event.weight_gen[i])
+                hist["Zeta_rec"].Fill(event.zeta_rec[i][0], event.weight_rec[i])
+    logger.info( "Done with sample "+sample.name+" and selectionString "+cutInterpreter.cutString(args.selection) )
 
-for sample in mc:
-    sample.weight = lambda event, sample: 1.
-
-stack = Stack(mc)
-
-# Use some defaults
-Plot.setDefaults(stack = stack, weight = staticmethod(weight_), selectionString = cutInterpreter.cutString(args.selection))
-
-################################################################################
-# Now define the plots
-
-plots = []
-
-plots.append(Plot(
-    name = "nAK8",
-    texX = 'Number of AK8 jets', texY = 'Number of Events',
-    attribute = lambda event, sample: event.nPFJetAK8,
-    binning=[11, -0.5, 10.5],
-))
-
-plots.append(Plot(
-    name = "nGen",
-    texX = 'Number of gen constituents', texY = 'Number of Events',
-    attribute = lambda event, sample: event.nGenParts,
-    binning=[61, -0.5, 60.5],
-))
-
-plots.append(Plot(
-    name = "nRec",
-    texX = 'Number of PF constituents', texY = 'Number of Events',
-    attribute = lambda event, sample: event.nPFParts,
-    binning=[61, -0.5, 60.5],
-))
-
-plots.append(Plot(
-    name = "nGenAll",
-    texX = 'Number of gen constituents after selection', texY = 'Number of Events',
-    attribute = lambda event, sample: event.nGenAll,
-    binning=[61, -0.5, 60.5],
-))
-
-plots.append(Plot(
-    name = "nGenMatched",
-    texX = 'Number of matched gen constituents after selection', texY = 'Number of Events',
-    attribute = lambda event, sample: event.nGenMatched,
-    binning=[61, -0.5, 60.5],
-))
-
-plots.append(Plot(
-    name = "MatchnigEfficiency",
-    texX = 'Matching efficiency', texY = 'Number of Events',
-    attribute = lambda event, sample: event.matchingEffi,
-    binning=[20, 0.0, 1.0],
-))
-
-
-plotting.fill(plots, read_variables = read_variables, sequence = sequence)
-
-drawPlots(plots)
-
-
-logger.info( "Done with prefix %s and selectionString %s", args.selection, cutInterpreter.cutString(args.selection) )
+    outfilename = outdir+sample.name+".root"
+    outfile = ROOT.TFile(outfilename, "RECREATE")
+    outfile.cd()
+    for histname in hist.keys():
+        hist[histname].Write(histname)
+    outfile.Close()
+    logger.info( "Saved histograms to file "+outfilename)
