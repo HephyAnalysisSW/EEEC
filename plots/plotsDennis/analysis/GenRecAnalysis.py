@@ -171,15 +171,13 @@ def getConstituents( event, sample ):
         else:
             minPtDiff = 1000
             for idx in matches:
-                PtDiff = abs(genPart.Pt() - pfParts[idx][0].Pt())
+                PtDiff = abs(genPart.Pt()-pfParts[idx][0].Pt())
                 if PtDiff < minPtDiff:
                     minPtDiff = PtDiff
                     gmatchIDX = idx
         genMatches[i] = matchIDX
         alreadyMatched.append(matchIDX)
 
-    Nall = 0
-    Nmatched = 0
     genParts_matched = []
     pfParts_matched = []
     for i, (genPart, genCharge) in enumerate(genParts):
@@ -189,7 +187,7 @@ def getConstituents( event, sample ):
 
     event.nGenAll = len(genParts) if len(genParts) > 0 else float('nan')
     event.nGenMatched = len(genParts_matched) if len(genParts) > 0 else float('nan')
-    event.matchingEffi = float(len(genParts_matched))/float(len(genParts)) if Nall > 0 else float('nan')
+    event.matchingEffi = float(len(genParts_matched))/float(len(genParts)) if len(genParts) > 0 else float('nan')
     event.passSel = passSel
 
 
@@ -225,6 +223,8 @@ read_variables = [
 histograms = {
     "Weight_gen": ROOT.TH1F("Weight_gen", "Weight_gen", 100, 0, 0.04),
     "Weight_rec": ROOT.TH1F("Weight_rec", "Weight_rec", 100, 0, 0.04),
+    "WeightZoom_gen": ROOT.TH1F("WeightZoom_gen", "WeightZoom_gen", 100, 0, 0.002),
+    "WeightZoom_rec": ROOT.TH1F("WeightZoom_rec", "WeightZoom_rec", 100, 0, 0.002),
     "Weight_matrix": ROOT.TH2F("Weight_matrix", "Weight_matrix", 100, 0, 0.04, 100, 0, 0.04),
     "Zeta_gen": ROOT.TH1F("Zeta_gen", "Zeta_gen", 100, 0, 3.0),
     "Zeta_rec": ROOT.TH1F("Zeta_rec", "Zeta_rec", 100, 0, 3.0),
@@ -248,6 +248,8 @@ for sample in mc:
             for i in range(len(event.zeta_gen)):
                 hist["Weight_gen"].Fill(event.weight_gen[i])
                 hist["Weight_rec"].Fill(event.weight_rec[i])
+                hist["WeightZoom_gen"].Fill(event.weight_gen[i])
+                hist["WeightZoom_rec"].Fill(event.weight_rec[i])
                 hist["Weight_matrix"].Fill(event.weight_gen[i], event.weight_rec[i])
                 hist["ZetaNoWeight_gen"].Fill(event.zeta_gen[i][0])
                 hist["ZetaNoWeight_rec"].Fill(event.zeta_rec[i][0])
