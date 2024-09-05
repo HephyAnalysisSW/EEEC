@@ -104,8 +104,30 @@ def getClosestJetIdx(object, event, maxDR, genpf_switch):
             minDR = jet.DeltaR(object)
     return idx_match
 
-
-
+def getChargedParticlesFromJet(event, jetidx, genrec):
+    chargedIds = [211, 13, 11, 1, 321, 2212, 3222, 3112, 3312, 3334]
+    particles = []
+    if genrec == "gen":
+        for iPart in range(event.nGenJetAK8_cons):
+            if event.GenJetAK8_cons_jetIndex[iPart] != jetidx:
+                continue
+            if abs(event.GenJetAK8_cons_pdgId[iPart]) not in chargedIds:
+                continue
+            particle = ROOT.TLorentzVector()
+            particle.SetPtEtaPhiM(event.GenJetAK8_cons_pt[iPart],event.GenJetAK8_cons_eta[iPart],event.GenJetAK8_cons_phi[iPart],event.GenJetAK8_cons_mass[iPart])
+            charge = 1 if event.GenJetAK8_cons_pdgId[iPart]>0 else -1
+            particles.append( (particle, charge) )
+    elif genrec == "rec":
+        for iPart in range(event.nPFJetAK8_cons):
+            if event.PFJetAK8_cons_jetIndex[iPart] != jetidx:
+                continue
+            if abs(event.PFJetAK8_cons_pdgId[iPart]) not in chargedIds:
+                continue
+            particle = ROOT.TLorentzVector()
+            particle.SetPtEtaPhiM(event.PFJetAK8_cons_pt[iPart],event.PFJetAK8_cons_eta[iPart],event.PFJetAK8_cons_phi[iPart],event.PFJetAK8_cons_mass[iPart])
+            charge = 1 if event.PFJetAK8_cons_pdgId[iPart]>0 else -1
+            particles.append( (particle, charge) )
+    return particles
 
 ################################################################################
 # Define sequences
@@ -133,24 +155,8 @@ def getConstituents( event, sample ):
                     if pfJet.Pt() > 400:
                         scale_pf = pfJet.Pt()
                         passSel = True
-                        for iGen in range(event.nGenJetAK8_cons):
-                            if event.GenJetAK8_cons_jetIndex[iGen] != idx_genJet:
-                                continue
-                            if abs(event.GenJetAK8_cons_pdgId[iGen]) not in [211, 13, 11, 1, 321, 2212, 3222, 3112, 3312, 3334]:
-                                continue
-                            genPart = ROOT.TLorentzVector()
-                            genPart.SetPtEtaPhiM(event.GenJetAK8_cons_pt[iGen],event.GenJetAK8_cons_eta[iGen],event.GenJetAK8_cons_phi[iGen],event.GenJetAK8_cons_mass[iGen])
-                            genPartCharge = 1 if event.GenJetAK8_cons_pdgId[iGen]>0 else -1
-                            genParts.append( (genPart, genPartCharge) )
-                        for iRec in range(event.nPFJetAK8_cons):
-                            if event.PFJetAK8_cons_jetIndex[iRec] != idx_pfJet:
-                                continue
-                            if abs(event.PFJetAK8_cons_pdgId[iRec]) not in [211, 13, 11, 1, 321, 2212, 3222, 3112, 3312, 3334]:
-                                continue
-                            pfPart = ROOT.TLorentzVector()
-                            pfPart.SetPtEtaPhiM(event.PFJetAK8_cons_pt[iRec],event.PFJetAK8_cons_eta[iRec],event.PFJetAK8_cons_phi[iRec],event.PFJetAK8_cons_mass[iRec])
-                            pfPartCharge = 1 if event.PFJetAK8_cons_pdgId[iRec]>0 else -1
-                            pfParts.append( (pfPart, pfPartCharge) )
+                        genParts = getChargedParticlesFromJet(event, idx_genJet, "gen")
+                        pfParts = getChargedParticlesFromJet(event, idx_pfJet, "rec")
     event.nGenParts = len(genParts)
     event.nPFParts = len(pfParts)
     maxDR_part = 0.05
