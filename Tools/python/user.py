@@ -1,6 +1,5 @@
 import os
 
-
 if os.environ["USER"] in ["dennis.schwarz"]:
     postprocessing_output_directory = "/scratch-cbe/users/dennis.schwarz/MTopCorrelations/nanoTuples"
     postprocessing_tmp_directory    = "/scratch/hephy/cms/dennis.schwarz/MTopCorrelations/tmp/"
@@ -13,3 +12,5 @@ if os.environ["USER"] in ["dennis.schwarz"]:
 
 if os.environ["USER"] == "matthias.kettner":
     plot_directory = "/groups/hephy/cms/matthias.kettner/www/MTopCorrelations/plots/"
+if os.environ["USER"] in ["robert.schoefbeck"]:
+    plot_directory                  = "/groups/hephy/cms/robert.schoefbeck/www/EEEC/"
