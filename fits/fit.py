@@ -260,12 +260,54 @@ class Data:
         
         return peak_x, peak_y, properties
 
+    def fit_spline(self, line_number=0,n_spline=300, smoothing_factor=None):
+        from scipy.interpolate import CubicSpline
+        from scipy.interpolate import UnivariateSpline
+        import numpy as np
+       # Get the data for a specific line
+        x = self.x_data[line_number]
+        y = self.y_data[line_number]
+
+        # Fit a smoothing spline to the data with UnivariateSpline
+        # The smoothing_factor (s) controls how smooth the spline is; higher values allow more deviation from data points
+        spline = UnivariateSpline(x, y, s=smoothing_factor)
+
+        # Generate fitted values for smoother plotting
+        x_smooth = np.linspace(min(x), max(x), n_spline)  # Increase to 300 points for a very smooth curve
+        y_smooth = spline(x_smooth)
+
+        # Convert data and fitted spline points to arrays for ROOT
+        x_arr = array("d", x)
+        y_arr = array("d", y)
+        x_smooth_arr = array("d", x_smooth)
+        y_smooth_arr = array("d", y_smooth)
+
+        # Create a ROOT canvas and TGraph for the original data points
+        canvas = ROOT.TCanvas("canvas", "Smoothing Spline Fit", 800, 600)
+        graph_data = ROOT.TGraph(len(x_arr), x_arr, y_arr)
+        graph_data.SetTitle("Smoothing Spline Fit;X;Y")
+        graph_data.SetMarkerStyle(20)
+        graph_data.SetMarkerColor(ROOT.kBlue)
+        graph_data.Draw("AP")
+
+        # Create a TGraph for the spline fit and overlay it
+        graph_spline = ROOT.TGraph(len(x_smooth_arr), x_smooth_arr, y_smooth_arr)
+        graph_spline.SetLineColor(ROOT.kRed)
+        graph_spline.SetLineWidth(2)
+        graph_spline.Draw("L")  # Draw as line
+        subdir = os.path.join( plot_directory_, "splines")
+        copyIndexPHP(subdir)
+        filename = os.path.join( subdir, "fit_{}_{}.png".format(os.path.splitext(args.filename)[0], line_number) )
+        canvas.Print(filename)
  
 # Example usage:
 # Assuming x_data, y_data, e_data are lists of lists from previous script
 data = Data(x_data, y_data, e_data)
 for line_number in range(len(x_data)):
 #    data.fit2(line_number=line_number)
-    data.find_peaks_scipy(line_number=line_number)
+#    data.fit3(line_number=line_number)
+#    data.find_peaks_scipy(line_number=line_number)
+    #data.fit_spline(line_number=line_number,n_spline=300,smoothing_factor=.00005)# for W
+    data.fit_spline(line_number=line_number,n_spline=300,smoothing_factor=.0005)# for top
 #
-#Analysis.Tools.syncer.sync()
+Analysis.Tools.syncer.sync()
